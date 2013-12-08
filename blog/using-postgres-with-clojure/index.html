@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="ie8"><![endif]-->
+<!--[if gt IE 8]><!--><html><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  
+  <title>Using Postgres with Clojure</title>
+
+  <meta name="description" content="How to setup and use postgres from within clojure. How to create a query interface in clojure.">
+  <meta name="author" content="Ben Reinhart">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href='http://fonts.googleapis.com/css?family=Lato:400,400italic' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/public/css/main.css">
+</head>
+<body>
+  <div class="container">
+<div class="heading animated flip-in-y">
+  <a href="/" class="me">
+    <img src="/public/img/me_95x95.jpeg" width="95" height="95" title="Ben Reinhart">
+  </a>
+
+    <a href="/" class="name"><strong>Ben Reinhart</strong></a>
+    <p>Software Developer</p>
+
+  <ul class="clearfix">
+    <li>
+      <a href="http://twitter.com/benjreinhart" class="icon-twitter" title="tweets"></a>
+    </li>
+    <li>
+      <a href="https://github.com/benjreinhart" class="icon-github" title="codes"></a>
+    </li>
+    <li>
+      <a href="mailto:benjreinhart@gmail.com" class="icon-envelope-alt" title="email"></a>
+    </li>
+  </ul>
+</div>
+
+    <div class="main ">
+
+        <h1>Using Postgres with Clojure</h1>
+
+      <p>I&#39;ve been using Clojure both at work and for personal use lately and I wanted to make a PostgresSQL backed API. I wanted to document my steps to connecting and using Postgres from Clojure.</p>
+<p>To start with, Postgres needs to be <a href="/blog/getting-started-with-postgres">installed</a>. I&#39;m assuming an empty database <code>clj-test</code> exists and postgres is running on port <code>5432</code>. I&#39;m also assuming <a href="http://leiningen.org/">Leiningen</a> is being used for Clojure project management.</p>
+<p>In order to connect to Postgres, a <a href="https://github.com/clojure/java.jdbc">Clojure wrapper for JDBC-based access to databases</a> and the <a href="https://clojars.org/postgresql">Postgres JDBC driver</a> is needed. Add them to the <code>project.clj</code>.</p>
+<pre><code class="lang-clojure"><span class="p">[</span><span class="nv">org.clojure/java.jdbc</span> <span class="s">&quot;0.3.0-beta2&quot;</span><span class="p">]</span><br /><span class="p">[</span><span class="nv">postgresql</span> <span class="s">&quot;9.1-901.jdbc4&quot;</span><span class="p">]</span><br /></code></pre>
+<p>Connecting to Postgres from the repl should be pretty straightforward. Add the following code into a file which will then be loaded into the repl. I put the following code in <code>db/repl-connection.clj</code>:</p>
+<pre><code class="lang-clojure"><span class="p">(</span><span class="nf">require</span> <span class="o">&#39;</span><span class="p">[</span><span class="nv">clojure.java.jdbc</span> <span class="ss">:as</span> <span class="nv">jdbc</span><span class="p">])</span><br /><br /><span class="p">(</span><span class="k">def </span><span class="nv">pgdb</span><br />  <span class="p">{</span> <span class="ss">:subprotocol</span> <span class="s">&quot;postgresql&quot;</span><br />    <span class="ss">:subname</span> <span class="s">&quot;//localhost:5432/clj-test&quot;</span> <span class="p">})</span><br /><br /><span class="p">(</span><span class="k">def </span><span class="nv">create-users-table-sql</span><br />  <span class="s">&quot;create table users (</span><br /><span class="s">    id bigserial primary key,</span><br /><span class="s">    username varchar(255),</span><br /><span class="s">    email varchar(255) not null</span><br /><span class="s">  );&quot;</span><span class="p">)</span><br /></code></pre>
+<p>This code does three things:</p>
+<ul>
+<li>Loads and defines the JDBC wrapper as <code>jdbc</code></li>
+<li>Creates a var <code>pgdb</code> that contains the Postgres connection configuration</li>
+<li>Creates a var <code>create-users-table-sql</code> that defines a raw SQL string which will be executed to create the users table</li>
+</ul>
+<p>Next, open the repl and load the file:</p>
+<pre><code>user=&gt; (load-file &quot;db/repl-connection.clj&quot;)
+#&#39;user/create-users-table-sql</code></pre>
+<p>Create the users table by executing the <code>create-users-table-sql</code> SQL:</p>
+<pre><code>user=&gt; (jdbc/execute! pgdb [create-users-table-sql])
+(0)</code></pre>
+<p>The <a href="http://clojure.github.io/java.jdbc/#clojure.java.jdbc/execute!">execute! function</a> takes a database configuration object and a vector of SQL (non-select) clauses.</p>
+<p>Given an existing table, it&#39;s now possible to <code>insert!</code>, <code>update!</code>, <code>delete!</code> and <code>query</code> it. Insert a couple of records into the users table:</p>
+<pre><code>user=&gt; (jdbc/insert! pgdb :users {:username &quot;lindsaybluth&quot; :email &quot;lindsay@bluth.com&quot;})
+({:email &quot;lindsay@bluth.com&quot;, :username &quot;lindsaybluth&quot;, :id 1})
+
+user=&gt; (jdbc/insert! pgdb :users {:username &quot;tobiasfunke&quot; :email &quot;tobias@funke.com&quot;})
+({:email &quot;tobias@funke.com&quot;, :username &quot;tobiasfunke&quot;, :id 2})</code></pre>
+<p>The <a href="http://clojure.github.io/java.jdbc/#clojure.java.jdbc/query">query function</a> is similar to the <code>execute!</code> function except it&#39;s used to perform SQL <code>select</code>s. <code>query</code>, just like <code>execute!</code>, accepts a list of raw SQL strings.</p>
+<pre><code>user=&gt; (jdbc/query pgdb [&quot;select * from users where username=&#39;lindsaybluth&#39;&quot;])
+({:email &quot;lindsay@bluth.com&quot;, :username &quot;lindsaybluth&quot;, :id 1})</code></pre>
+<p>As is, this puts an application on the fast track for SQL injection. However, the reason for accepting a list for the SQL statements is for accepting params, i.e.</p>
+<pre><code>user=&gt; (jdbc/query pgdb [&quot;select * from users where username=?&quot; &quot;lindsaybluth&quot;])
+({:email &quot;lindsay@bluth.com&quot;, :username &quot;lindsaybluth&quot;, :id 1})</code></pre>
+<p>The values used as parameters will be sanitized. Dynamic values should be parameterized since doing so will prevent a value like <code>&quot;lindsaybluth&#39;; drop table users; --&quot;</code> from dropping the users table.</p>
+<h3>jsql</h3>
+<p>Crafting your own SQL strings can get old fast, thankfully there are a number of libraries that provide DSLs for constructing SQL. <a href="https://github.com/seancorfield/jsql">jsql</a> is one of those libraries and the result of extracting the SQL construction component out of the clojure.java.jdbc library.</p>
+<p>To bring in the library, add jsql to <code>project.clj</code>.</p>
+<pre><code class="lang-clojure"><span class="p">[</span><span class="nv">java-jdbc/dsl</span> <span class="s">&quot;0.1.0&quot;</span><span class="p">]</span><br /></code></pre>
+<p>The DSL provides simple <a href="https://github.com/seancorfield/jsql#usage">functions</a> for generating SQL.</p>
+<pre><code>user=&gt; (use &#39;java-jdbc.sql)
+user=&gt; (select * :users (where {:username &quot;lindsaybluth&quot;}))
+(&quot;SELECT * FROM users WHERE username = ?&quot; &quot;lindsaybluth&quot;)</code></pre>
+<h3>Creating a query interface</h3>
+<p>We can create our own querying DSL by wrapping jsql. Start with just a couple of generic functions for generating SQL.</p>
+<pre><code class="lang-clojure"><span class="c1">;; src/clj-test/query_interface.clj</span><br /><br /><span class="p">(</span><span class="kd">ns </span><span class="nv">clj-test.query-interface</span><br />  <span class="p">(</span><span class="ss">:use</span> <span class="nv">java-jdbc.sql</span><span class="p">))</span><br /><br /><span class="p">(</span><span class="kd">defn </span><span class="nv">find-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="nv">conditions</span><span class="p">]</span><br />  <span class="p">(</span><span class="nb">select * </span><span class="nv">table</span><br />    <span class="p">(</span><span class="nf">where</span> <span class="nv">conditions</span><span class="p">)))</span><br /><br /><span class="p">(</span><span class="kd">defn </span><span class="nv">find-by-attribute-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="nv">attribute</span> <span class="nv">value</span><span class="p">]</span><br />  <span class="p">(</span><span class="nf">find-sql</span> <span class="nv">table</span> <span class="p">{</span><span class="nv">attribute</span> <span class="nv">value</span><span class="p">}))</span><br /><br /><span class="p">(</span><span class="kd">defn </span><span class="nv">find-by-id-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="nv">id</span><span class="p">]</span><br />  <span class="p">(</span><span class="nf">find-by-attribute-sql</span> <span class="nv">table</span> <span class="ss">:id</span> <span class="nv">id</span><span class="p">))</span><br /></code></pre>
+<p>Note that the code above does not actually execute any SQL against Postgres, instead returning a list of SQL params.</p>
+<pre><code>user=&gt; (require &#39;[clj-test.query-interface :as qi])
+
+user=&gt; (qi/find-sql :users {:id 1})
+(&quot;SELECT * FROM users WHERE id = ?&quot; 1)
+
+user=&gt; (qi/find-by-attribute-sql :users :id 1)
+(&quot;SELECT * FROM users WHERE id = ?&quot; 1)
+
+user=&gt; (qi/find-by-attribute-sql :users :username &quot;tobiasfunke&quot;)
+(&quot;SELECT * FROM users WHERE username = ?&quot; &quot;tobiasfunke&quot;)
+
+user=&gt; (qi/find-by-id-sql :users 1)
+(&quot;SELECT * FROM users WHERE id = ?&quot; 1)</code></pre>
+<p>So far these functions are simple and expressive. However, the functions currently don&#39;t support selecting on certain fields, instead returning all fields. These functions should default to selecting all fields but allow for selecting only a subset.</p>
+<pre><code class="lang-clojure"><span class="p">(</span><span class="kd">defn </span><span class="nv">find-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="nv">options</span><span class="p">]</span><br />  <span class="p">(</span><span class="k">let </span><span class="p">[{</span><span class="nv">fields</span> <span class="ss">:select</span> <span class="nv">conditions</span> <span class="ss">:conditions</span><span class="p">}</span> <span class="nv">options</span><br />        <span class="nv">fields</span> <span class="p">(</span><span class="nb">or </span><span class="nv">fields</span> <span class="nv">*</span><span class="p">)]</span><br />    <span class="p">(</span><span class="nb">select </span><span class="nv">fields</span> <span class="nv">table</span><br />      <span class="p">(</span><span class="nf">where</span> <span class="nv">conditions</span><span class="p">))))</span><br /><br /><span class="p">(</span><span class="kd">defn </span><span class="nv">find-by-attribute-sql</span><br />  <span class="p">([</span><span class="nv">table</span> <span class="nv">attribute</span> <span class="nv">value</span><span class="p">]</span> <span class="p">(</span><span class="nf">find-by-attribute-sql</span> <span class="nv">table</span> <span class="nv">attribute</span> <span class="nv">value</span> <span class="p">{}))</span><br />  <span class="p">([</span><span class="nv">table</span> <span class="nv">attribute</span> <span class="nv">value</span> <span class="nv">options</span><span class="p">]</span><br />    <span class="p">(</span><span class="nf">find-sql</span> <span class="nv">table</span> <span class="p">(</span><span class="nb">merge </span><span class="nv">options</span> <span class="p">{</span><span class="ss">:conditions</span> <span class="p">{</span><span class="nv">attribute</span> <span class="nv">value</span><span class="p">}}))))</span><br /><br /><span class="p">(</span><span class="kd">defn </span><span class="nv">find-by-id-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="nv">id</span> <span class="o">&amp;</span> <span class="nv">args</span><span class="p">]</span><br />  <span class="p">(</span><span class="nb">apply </span><span class="nv">find-by-attribute-sql</span> <span class="p">(</span><span class="nb">concat </span><span class="p">(</span><span class="nb">list </span><span class="nv">table</span> <span class="ss">:id</span> <span class="nv">id</span><span class="p">)</span> <span class="nv">args</span><span class="p">))</span><br /><br /><span class="c1">;; (find-sql :users {:conditions {:id 1}})</span><br /><span class="c1">;; =&gt; (&quot;SELECT * FROM users WHERE id = ?&quot; 1)</span><br /><br /><span class="c1">;; (find-sql :users {:select [:id :username] :conditions {:id 1}})</span><br /><span class="c1">;; =&gt; (&quot;SELECT id,username FROM users WHERE id = ?&quot; 1)</span><br /><br /><span class="c1">;; (find-by-attribute-sql :users :username &quot;tobiasfunke&quot;)</span><br /><span class="c1">;; =&gt; (&quot;SELECT * FROM users WHERE username = ?&quot; &quot;tobiasfunke&quot;)</span><br /><br /><span class="c1">;; (find-by-attribute-sql :users :username &quot;tobiasfunke&quot; {:select [:id :username]})</span><br /><span class="c1">;; =&gt; (&quot;SELECT id,username FROM users WHERE username = ?&quot; &quot;tobiasfunke&quot;)</span><br /><br /><span class="c1">;; (qi/find-by-id-sql :users 10)</span><br /><span class="c1">;; =&gt; (&quot;SELECT * FROM users WHERE id = ?&quot; 10)</span><br /><br /><span class="c1">;; (qi/find-by-id-sql :users 10 {:select [:id :username]})</span><br /><span class="c1">;; =&gt; (&quot;SELECT id,username FROM users WHERE id = ?&quot; 10)</span><br /></code></pre>
+<p>Tweaking our functions a bit, we can support selecting certain fields in a query and default to all. <code>find-by-attribute-sql</code> uses two implementations of itself to account for the optional <code>options</code> map. The <code>find-by-id-sql</code> function applies its arguments to the <code>find-by-attribute-sql</code> function. The <code>find-sql</code> function uses a <code>let</code> block to destructure the desired keys as well as provide a default value <code>*</code> for the fields to select. Clojure&#39;s destructuring of maps provides a special key <code>:or</code> to be used when key(s) don&#39;t exist. We could rewrite the same function replacing the second assignment in the <code>let</code> block with the <code>:or</code> key in the destructuring assignment.</p>
+<pre><code class="lang-clojure"><span class="p">(</span><span class="kd">defn </span><span class="nv">find-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="nv">options</span><span class="p">]</span><br />  <span class="p">(</span><span class="k">let </span><span class="p">[{</span><span class="nv">fields</span> <span class="ss">:select</span> <span class="nv">conditions</span> <span class="ss">:conditions</span> <span class="ss">:or</span> <span class="p">{</span><span class="nv">fields</span> <span class="nv">*</span><span class="p">}}</span> <span class="nv">options</span><span class="p">]</span><br />    <span class="p">(</span><span class="nb">select </span><span class="nv">fields</span> <span class="nv">table</span><br />      <span class="p">(</span><span class="nf">where</span> <span class="nv">conditions</span><span class="p">))))</span><br /><br /><span class="c1">;; (find-sql :users {:conditions {:id 1}})</span><br /><span class="c1">;; =&gt; (&quot;SELECT * FROM users WHERE id = ?&quot; 1)</span><br /><br /><span class="c1">;; (find-sql :users {:select [:id :username] :conditions {:id 1}})</span><br /><span class="c1">;; =&gt; (&quot;SELECT id,username FROM users WHERE id = ?&quot; 1)</span><br /></code></pre>
+<p>And now that we moved our default select value into the destructuring, we can just get rid of the <code>let</code> block and pull that same destructuring into the method argument list.</p>
+<pre><code class="lang-clojure"><span class="p">(</span><span class="kd">defn </span><span class="nv">find-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="p">{</span><span class="nv">fields</span> <span class="ss">:select</span> <span class="nv">conditions</span> <span class="ss">:conditions</span> <span class="ss">:or</span> <span class="p">{</span><span class="nv">fields</span> <span class="nv">*</span><span class="p">}}]</span><br />  <span class="p">(</span><span class="nb">select </span><span class="nv">fields</span> <span class="nv">table</span><br />    <span class="p">(</span><span class="nf">where</span> <span class="nv">conditions</span><span class="p">)))</span><br /></code></pre>
+<p>Destructuring is awesome.</p>
+<p>Now that we have some basic methods for generating common SQL, let&#39;s add the ability to actually query the datatbase.</p>
+<pre><code class="lang-clojure"><span class="p">(</span><span class="kd">ns </span><span class="nv">clj-test.query-interface</span><br />  <span class="p">(</span><span class="ss">:use</span> <span class="nv">java-jdbc.sql</span><span class="p">)</span><br />  <span class="p">(</span><span class="ss">:require</span> <span class="p">[</span><span class="nv">clojure.java.jdbc</span> <span class="ss">:as</span> <span class="nv">jdbc</span><span class="p">])</span><br />  <span class="p">(</span><span class="ss">:refer-clojure</span> <span class="ss">:exclude</span> <span class="p">[</span><span class="nv">find</span><span class="p">]))</span><br /><br /><span class="p">(</span><span class="k">def </span><span class="o">^</span><span class="ss">:private</span> <span class="nv">pgdb</span><br />  <span class="p">{</span> <span class="ss">:subprotocol</span> <span class="s">&quot;postgresql&quot;</span><br />    <span class="ss">:subname</span> <span class="s">&quot;//localhost:5432/clj-test&quot;</span> <span class="p">})</span><br /><br /><span class="p">(</span><span class="k">def </span><span class="o">^</span><span class="ss">:private</span> <span class="nv">query</span><br />  <span class="p">(</span><span class="nb">partial </span><span class="nv">jdbc/query</span> <span class="nv">pgdb</span><span class="p">))</span><br /><br /><span class="p">(</span><span class="kd">defn </span><span class="nv">find-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="p">{</span><span class="nv">fields</span> <span class="ss">:select</span> <span class="nv">conditions</span> <span class="ss">:conditions</span> <span class="ss">:or</span> <span class="p">{</span><span class="nv">fields</span> <span class="nv">*</span><span class="p">}}]</span><br />  <span class="p">(</span><span class="nb">select </span><span class="nv">fields</span> <span class="nv">table</span><br />    <span class="p">(</span><span class="nf">where</span> <span class="nv">conditions</span><span class="p">)))</span><br /><br /><span class="p">(</span><span class="kd">defn </span><span class="nv">find-by-attribute-sql</span><br />  <span class="p">([</span><span class="nv">table</span> <span class="nv">attribute</span> <span class="nv">value</span><span class="p">]</span> <span class="p">(</span><span class="nf">find-by-attribute-sql</span> <span class="nv">table</span> <span class="nv">attribute</span> <span class="nv">value</span> <span class="p">{}))</span><br />  <span class="p">([</span><span class="nv">table</span> <span class="nv">attribute</span> <span class="nv">value</span> <span class="nv">options</span><span class="p">]</span><br />    <span class="p">(</span><span class="nf">find-sql</span> <span class="nv">table</span> <span class="p">(</span><span class="nb">merge </span><span class="nv">options</span> <span class="p">{</span><span class="ss">:conditions</span> <span class="p">{</span><span class="nv">attribute</span> <span class="nv">value</span><span class="p">}}))))</span><br /><br /><span class="p">(</span><span class="kd">defn </span><span class="nv">find-by-id-sql</span> <span class="p">[</span><span class="nv">table</span> <span class="nv">id</span> <span class="o">&amp;</span> <span class="nv">args</span><span class="p">]</span><br />  <span class="p">(</span><span class="nb">apply </span><span class="nv">find-by-attribute-sql</span> <span class="p">(</span><span class="nb">concat </span><span class="p">(</span><span class="nb">list </span><span class="nv">table</span> <span class="ss">:id</span> <span class="nv">id</span><span class="p">)</span> <span class="nv">args</span><span class="p">)))</span><br /><br /><span class="p">(</span><span class="k">def </span><span class="nb">find </span><span class="p">(</span><span class="nb">comp </span><span class="nv">query</span> <span class="nv">find-sql</span><span class="p">))</span><br /><span class="p">(</span><span class="k">def </span><span class="nv">find-by-attribute</span> <span class="p">(</span><span class="nb">comp </span><span class="nv">query</span> <span class="nv">find-by-attribute-sql</span><span class="p">))</span><br /><span class="p">(</span><span class="k">def </span><span class="nv">find-by-id</span> <span class="p">(</span><span class="nb">comp </span><span class="nv">query</span> <span class="nv">find-by-id-sql</span><span class="p">))</span><br /></code></pre>
+<p>The main points here are</p>
+<ul>
+<li>Partially applying <code>jdbc/query</code>, since it is always going to take the same database configuration and is unnecessarily verbose to pass it every time</li>
+<li>Composing the SQL generation functions with the <code>query</code> function to get a new function which queries the db with the generated SQL. <a href="http://clojuredocs.org/clojure_core/1.2.0/clojure.core/comp">comp</a> takes a variable number of functions and applies them from right to left</li>
+</ul>
+<p>Try it out in the repl</p>
+<pre><code>user=&gt; (require &#39;[clj-test.query-interface :as qi])
+
+user=&gt; (qi/find :users {:select * :conditions {:id 1}})
+({:email &quot;lindsay@bluth.com&quot;, :username &quot;lindsaybluth&quot;, :id 1})
+
+user=&gt; (qi/find-by-id :users 1)
+({:email &quot;lindsay@bluth.com&quot;, :username &quot;lindsaybluth&quot;, :id 1})
+
+user=&gt; (qi/find-by-id :users 1 {:select [:username]})
+({:username &quot;lindsaybluth&quot;})</code></pre>
+<p>This looks pretty good, although I would expect finding a record by id (which is unique) to return one result (or <code>nil</code> if it doesn&#39;t exist) and not a list. Function composition makes this all too easy&#8212;we can just add another function, <code>first</code>, to the list of functions that are composed to create <code>find-by-id</code>. Since <code>jdbc/query</code> will always return a list, even if the query returns 0 results, we know that calling <code>first</code> on the result of the query will give us the result we&#39;re looking for or <code>nil</code>.</p>
+<pre><code class="lang-clojure"><span class="p">(</span><span class="k">def </span><span class="nv">find-by-id</span> <span class="p">(</span><span class="nb">comp first </span><span class="nv">query</span> <span class="nv">find-by-id-sql</span><span class="p">))</span><br /></code></pre>
+<pre><code>user=&gt; (qi/find-by-id :users 1)
+{:email &quot;lindsay@bluth.com&quot;, :username &quot;lindsaybluth&quot;, :id 1}
+
+user=&gt; (qi/find-by-id :users 1 {:select [:username]})
+{:username &quot;lindsaybluth&quot;}
+
+user=&gt; (qi/find-by-id :users 123123)
+nil</code></pre>
+<p>There is still more we can do here. For starters, we could validate that these functions are recieving the parameters they are expecting. We could easily create another function whose sole responsibility would be to validate the params and add that to the list of functions composed. We could also tweak the signatures of the resulting finder methods to accept keyword arguments. I&#39;m going to ignore these for now since they would mostly just be icing on the cake.</p>
+<h3>Wrapping the query interface to create model-specific functions</h3>
+<p>So far we have been building on top of jdbc driver&#39;s interface until the point where we created our own DSL. In an application setting, we&#39;d want our models to expose these functions specifically for their corresponding tables.</p>
+<pre><code class="lang-clojure"><span class="c1">;; src/clj-test/models/user.clj</span><br /><br /><span class="p">(</span><span class="kd">ns </span><span class="nv">clj-test.models.user</span><br />  <span class="p">(</span><span class="ss">:require</span> <span class="p">[</span><span class="nv">clj-test.query-interface</span> <span class="ss">:as</span> <span class="nv">qi</span><span class="p">])</span><br />  <span class="p">(</span><span class="ss">:refer-clojure</span> <span class="ss">:exclude</span> <span class="p">[</span><span class="nv">find</span><span class="p">]))</span><br /><br /><span class="p">(</span><span class="k">def </span><span class="nb">find </span><span class="p">(</span><span class="nb">partial </span><span class="nv">qi/find</span> <span class="ss">:users</span><span class="p">))</span><br /><span class="p">(</span><span class="k">def </span><span class="nv">find-by-id</span> <span class="p">(</span><span class="nb">partial </span><span class="nv">qi/find-by-id</span> <span class="ss">:users</span><span class="p">))</span><br /><span class="p">(</span><span class="k">def </span><span class="nv">find-by-username</span> <span class="p">(</span><span class="nb">partial </span><span class="nv">qi/find-by-attribute</span> <span class="ss">:users</span> <span class="ss">:username</span><span class="p">))</span><br /></code></pre>
+<pre><code>user=&gt; (user/find {:conditions {:username &quot;tobiasfunke&quot;}})
+({:email &quot;tobias@funke.com&quot;, :username &quot;tobiasfunke&quot;, :id 2})
+
+user=&gt; (user/find-by-id 2)
+{:email &quot;tobias@funke.com&quot;, :username &quot;tobiasfunke&quot;, :id 2}
+
+user=&gt; (user/find-by-username &quot;tobiasfunke&quot;)
+({:email &quot;tobias@funke.com&quot;, :username &quot;tobiasfunke&quot;, :id 2})
+
+user=&gt; (user/find-by-id 2 {:select [:username]})
+{:username &quot;tobiasfunke&quot;}
+
+user=&gt; (user/find-by-username &quot;tobiasfunke&quot; {:select [:username]})
+({:username &quot;tobiasfunke&quot;})</code></pre>
+<p>Our finder methods are looking good. However, in my application <code>username</code> is a unique attribute so it should only return the record itself or <code>nil</code> if the record doens&#39;t exist. Just like with <code>find-by-id</code>, we can call <code>first</code> on the results of the query.</p>
+<pre><code class="lang-clojure"><span class="p">(</span><span class="k">def </span><span class="nv">find-by-username</span><br />  <span class="p">(</span><span class="nb">comp </span><span class="nv">first</span><br />        <span class="p">(</span><span class="nb">partial </span><span class="nv">qi/find-by-attribute</span> <span class="ss">:users</span> <span class="ss">:username</span><span class="p">)))</span><br /></code></pre>
+<pre><code>user=&gt; (user/find-by-username &quot;tobiasfunke&quot;)
+{:email &quot;tobias@funke.com&quot;, :username &quot;tobiasfunke&quot;, :id 2}
+
+user=&gt; (user/find-by-username &quot;tobiasfunke&quot; {:select [:id :username]})
+{:username &quot;tobiasfunke&quot;, :id 2}</code></pre>
+<p>The user model has three solid functions for querying the database. Each function is built upon other functions and ultimately delegates to the <code>find-sql</code> function.</p>
+<hr />
+
+<p>Every one of the functions we created are bite-sized and mostly a composition of other functions. Keeping the responsibility of any one function to a minimum allows us not only to easily reason about the function but also to be able to compose it with a number of other functions.</p>
+<h3>Next steps</h3>
+<p>There are other libraries out there which aim to be more feature complete. <a href="http://sqlkorma.com/">Korma</a>, <a href="https://github.com/jkk/honeysql">HoneySQL</a> and <a href="https://github.com/r0man/sqlingvo">SQLingvo</a> are other such libraries. Korma seems to be pretty popular. My only concern with Korma is that it uses an older version of the clojure JDBC wrapper.</p>
+
+    </div>
+  </div>
+
+<script>
+  var _gaq=[['_setAccount','UA-22235222-1'],['_trackPageview']];
+  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];g.async=1;
+  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+  s.parentNode.insertBefore(g,s)}(document,'script'));
+</script>
+
+</body>
+</html>
