@@ -72,3 +72,27 @@ dt {
   width: 100px;
   text-align: left;
 }
+
+
+/**
+ * Responsive
+ */
+
+@media all and (max-width: 630px) {
+  h1, main, dl {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  main {
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 14em;
+  }
+
+  dt {
+    width: 80px;
+  }
+}
