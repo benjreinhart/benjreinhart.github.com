@@ -78,18 +78,23 @@ dt {
  * Responsive
  */
 
-@media all and (max-width: 630px) {
+@media all and (max-width: 400px) {
   h1, main, dl {
     margin-left: 0;
     width: 100%;
   }
 
   main {
+    font-size: 22px;
     text-align: center;
   }
 
   h1 {
     font-size: 14em;
+  }
+
+  dl {
+    margin-left: 10px;
   }
 
   dt {
