@@ -2,20 +2,32 @@
 layout: default
 ---
 
-<div class="home">
+<h1>Hi.</h1>
 
-  <h1 class="page-heading">Posts</h1>
+<main>
+  <p class="large-screen">I am a software developer living in Chicago.</p>
+  <p class="large-screen">I like studying computer science and percussion.</p>
+  <p class="small-screen">I am a software developer living in Chicago. I like studying computer science and percussion.</p>
+</main>
 
-  <ul class="post-list">
-    {% for post in site.posts %}
-      <li>
-        <span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
+<dl>
+  <dt>Email</dt>
+  <dd>
+    <a href="mailto:benjreinhart@gmail.com">benjreinhart@gmail.com</a>
+  </dd>
 
-        <h2>
-          <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
-        </h2>
-      </li>
-    {% endfor %}
-  </ul>
+  <dt>Twitter</dt>
+  <dd>
+    <a href="https://twitter.com/benjreinhart">@benjreinhart</a>
+  </dd>
 
-</div>
+  <dt>Github</dt>
+  <dd>
+    <a href="https://github.com/benjreinhart">benjreinhart</a>
+  </dd>
+
+  <dt>LinkedIn</dt>
+  <dd>
+    <a href="https://www.linkedin.com/pub/ben-reinhart/26/488/145">Ben Reinhart</a>
+  </dd>
+</dl>
