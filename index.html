@@ -2,32 +2,71 @@
 layout: default
 ---
 
-<h1>Hi.</h1>
+<div class="card">
+  <a href="javascript:" class="menu-link" id="js-menu-link">
+    <i class="fa fa-angle-down"></i>
+  </a>
 
-<main>
-  <p class="large-screen">I am a software developer living in Chicago.</p>
-  <p class="large-screen">I like studying computer science and percussion.</p>
-  <p class="small-screen">I am a software developer living in Chicago. I like studying computer science and percussion.</p>
-</main>
+  <div id="js-menu" class="menu">
+    <ul>
+      <li>
+        <a href="https://github.com/benjreinhart">
+          <div>
+            <i class="fa fa-github"></i>
+            benjreinhart
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="https://twitter.com/benjreinhart">
+          <div>
+            <i class="fa fa-twitter"></i>
+            benjreinhart
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="https://www.linkedin.com/in/bereinhart">
+          <div>
+            <i class="fa fa-linkedin"></i>
+            Ben Reinhart
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="javascript:" id="js-menu-close-link">
+          <div>
+            Close
+          </div>
+        </a>
+      </li>
+    </ul>
+  </div>
 
-<dl>
-  <dt>Email</dt>
-  <dd>
-    <a href="mailto:benjreinhart@gmail.com">benjreinhart@gmail.com</a>
-  </dd>
+  <header class="clearfix">
+    <img src="/images/me.jpg" class="header-image">
+    <div class="header-content">
+      <h1><a href="/">Ben Reinhart</a></h1>
+      <span>Chicago, IL, United States</span>
+    </div>
+  </header>
 
-  <dt>Twitter</dt>
-  <dd>
-    <a href="https://twitter.com/benjreinhart">@benjreinhart</a>
-  </dd>
+  <div class="card-body">
+    <p>
+      I've spent the last couple of years at Groupon on multiple projects ranging from API-driven client side applications in JavaScript & CoffeeScript to backend APIs in Ruby and Clojure. My first year there I was primarily working as a front end developer on a large client side Backbone.js application. After that, I spent about a year working on a few Node.js applications that powered the main Groupon consumer experience. Since then I've been working on an internal API written in Clojure and backed by Elasticsearch.
+    </p>
 
-  <dt>Github</dt>
-  <dd>
-    <a href="https://github.com/benjreinhart">benjreinhart</a>
-  </dd>
+    <p>
+      Aside from Groupon, I like to contribute to open source and work on as many side projects as I can, some of which I throw on my github account (github.com/benjreinhart), others are private or internal at Groupon. I also take classes at DePaul in Chicago and on websites like Coursera and Udacity.
+    </p>
 
-  <dt>LinkedIn</dt>
-  <dd>
-    <a href="https://www.linkedin.com/pub/ben-reinhart/26/488/145">Ben Reinhart</a>
-  </dd>
-</dl>
+    <p>
+      In the past, I've mentored for StarterLeague (starterleague.com) as well as taught a multipart workshop on JavaScript there. I've presented at UXMad and the Chicago Node.js meetup.
+    </p>
+
+    <p>
+      When I'm not developing, I like to practice and play drums.
+    </p>
+  </div>
+
+</div>
