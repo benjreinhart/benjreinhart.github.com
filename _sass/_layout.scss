@@ -115,7 +115,9 @@ a {
     }
 
     ul li:first-child {
-      border-top-left-radius: 3px;
+      a {
+        border-top-left-radius: 3px;
+      }
     }
 
     ul li:last-child {
