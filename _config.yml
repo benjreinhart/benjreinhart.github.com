@@ -14,6 +14,9 @@ url: http://benreinhart.com
 twitter_username: benjreinhart
 github_username:  benjreinhart
 
+exclude:
+  - .gems
+
 # Build settings
 markdown: kramdown
 
