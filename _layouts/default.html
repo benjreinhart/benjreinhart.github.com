@@ -7,39 +7,12 @@
 
     {{ content }}
 
-
     <script>
       window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
       ga('create', 'UA-22235222-1', 'auto');
       ga('send', 'pageview');
     </script>
     <script async src='https://www.google-analytics.com/analytics.js'></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.6/zepto.min.js"></script>
-    <script>
-      $(function() {
-        var $menu = $("#js-menu");
-        var $menuLink = $("#js-menu-link");
-        var $menuCloseLink = $("#js-menu-close-link");
-
-        $('html').click(function() {
-          $menu.hide();
-        });
-
-        $menuLink.click(function(e) {
-          $menu.show();
-          e.stopPropagation();
-        });
-
-        $menuCloseLink.click(function() {
-          $menu.hide();
-        });
-
-        $menu.click(function(e) {
-          e.stopPropagation();
-        });
-      });
-    </script>
 
   </body>
 </html>
