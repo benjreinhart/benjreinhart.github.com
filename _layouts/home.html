@@ -1,32 +1,42 @@
----
-layout: default
----
+<!DOCTYPE html>
+<html>
 
-{{ content }}
+  {% include head.html %}
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.6/zepto.min.js"></script>
-<script>
-  $(function() {
-    var $html = $("html");
-    var $menu = $("#js-menu");
-    var $menuLink = $("#js-menu-link");
-    var $menuCloseLink = $("#js-menu-close-link");
+  <body class="home">
 
-    $html.click(function() {
-      $menu.hide();
-    });
+    {{ content }}
 
-    $menuLink.click(function(e) {
-      $menu.show();
-      e.stopPropagation();
-    });
 
-    $menuCloseLink.click(function() {
-      $menu.hide();
-    });
+    {% include google_analytics.html %}
 
-    $menu.click(function(e) {
-      e.stopPropagation();
-    });
-  });
-</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.6/zepto.min.js"></script>
+    <script>
+      $(function() {
+        var $html = $("html");
+        var $menu = $("#js-menu");
+        var $menuLink = $("#js-menu-link");
+        var $menuCloseLink = $("#js-menu-close-link");
+
+        $html.click(function() {
+          $menu.hide();
+        });
+
+        $menuLink.click(function(e) {
+          $menu.show();
+          e.stopPropagation();
+        });
+
+        $menuCloseLink.click(function() {
+          $menu.hide();
+        });
+
+        $menu.click(function(e) {
+          e.stopPropagation();
+        });
+      });
+    </script>
+
+  </body>
+</html>
+
