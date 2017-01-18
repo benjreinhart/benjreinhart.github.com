@@ -3,39 +3,12 @@
 
   {% include head.html %}
 
-  <body class="home">
+  <body class="avenir black-70">
 
     {{ content }}
 
 
     {% include google_analytics.html %}
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.6/zepto.min.js"></script>
-    <script>
-      $(function() {
-        var $html = $("html");
-        var $menu = $("#js-menu");
-        var $menuLink = $("#js-menu-link");
-        var $menuCloseLink = $("#js-menu-close-link");
-
-        $html.click(function() {
-          $menu.hide();
-        });
-
-        $menuLink.click(function(e) {
-          $menu.show();
-          e.stopPropagation();
-        });
-
-        $menuCloseLink.click(function() {
-          $menu.hide();
-        });
-
-        $menu.click(function(e) {
-          e.stopPropagation();
-        });
-      });
-    </script>
 
   </body>
 </html>
