@@ -1,156 +1,106 @@
----
-layout: home
----
-
-<div class="pa3 pb5">
-  <section class="mv3-ns">
-    <div class="mw7 center">
-      <h5 class="dn db-ns pa0 ma0 mb3 f4 o-90">Me</h5>
-
-      <div class="flex-ns flex-row-ns shadow-4 br1 shadow-none-s">
-        <img src="https://scontent-ord1-1.cdninstagram.com/t51.2885-19/s150x150/13739536_1197373306964303_1288605301_a.jpg" class="dn db-ns br1 br--left" />
-        <img src="https://scontent-ord1-1.cdninstagram.com/t51.2885-19/s600x600/13739536_1197373306964303_1288605301_a.jpg" class="db dn-ns w-100 h-100" />
-
-        <div class="ph0 pv4 ph4-ns pv0-ns flex flex-column justify-center items-center">
-          <p class="pa0 ma0 f5 lh-copy">
-            I am a software engineer living in San Francisco. I have been writing web
-            and mobile apps for the last <b class="b o-80">7 years</b>, primarily with
-            <strong class="b o-80">Ruby</strong> and <strong class="b o-80">JavaScript</strong>. Lately, I have
-            been working heavily with <strong class="b o-80">React</strong> and <strong class="b o-80">React Native</strong>.
-          </p>
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ben Reinhart</title>
+    <meta name="description" content="Personal page of Ben Reinhart">
+    <meta name="author" content="Ben Reinhart">
+    <meta name="keywords" content="Ben Reinhart, software, developer, engineer, dog dad">
+    <meta property="og:title" content="Ben Reinhart" />
+    <meta property="og:description" content="Software engineer living in San Francisco." />
+    <meta property="og:url" content="http://benreinhart.com" />
+    <meta property="og:type" content="website" />
+    <style>
+      /*! normalize.css v7.0.0 | MIT License | github.com/necolas/normalize.css */html{line-height:1.15;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}article,aside,footer,header,nav,section{display:block}h1{font-size:2em;margin:.67em 0}figcaption,figure,main{display:block}figure{margin:1em 40px}hr{box-sizing:content-box;height:0;overflow:visible}pre{font-family:monospace,monospace;font-size:1em}a{background-color:transparent;-webkit-text-decoration-skip:objects}abbr[title]{border-bottom:none;text-decoration:underline;text-decoration:underline dotted}b,strong{font-weight:inherit}b,strong{font-weight:bolder}code,kbd,samp{font-family:monospace,monospace;font-size:1em}dfn{font-style:italic}mark{background-color:#ff0;color:#000}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}audio,video{display:inline-block}audio:not([controls]){display:none;height:0}img{border-style:none}svg:not(:root){overflow:hidden}button,input,optgroup,select,textarea{font-family:sans-serif;font-size:100%;line-height:1.15;margin:0}button,input{overflow:visible}button,select{text-transform:none}[type=reset],[type=submit],button,html [type=button]{-webkit-appearance:button}[type=button]::-moz-focus-inner,[type=reset]::-moz-focus-inner,[type=submit]::-moz-focus-inner,button::-moz-focus-inner{border-style:none;padding:0}[type=button]:-moz-focusring,[type=reset]:-moz-focusring,[type=submit]:-moz-focusring,button:-moz-focusring{outline:1px dotted ButtonText}fieldset{padding:.35em .75em .625em}legend{box-sizing:border-box;color:inherit;display:table;max-width:100%;padding:0;white-space:normal}progress{display:inline-block;vertical-align:baseline}textarea{overflow:auto}[type=checkbox],[type=radio]{box-sizing:border-box;padding:0}[type=number]::-webkit-inner-spin-button,[type=number]::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}[type=search]::-webkit-search-cancel-button,[type=search]::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}details,menu{display:block}summary{display:list-item}canvas{display:inline-block}template{display:none}[hidden]{display:none}
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: arial, helvetica, sans-serif;
+        color: rgba(0, 0, 0, 0.7);
+        fill: currentColor;
+      }
+      .outer {
+        display: flex;
+        width: 100%;
+        height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .inner {
+        width: 500px;
+        padding: 20px;
+        border-radius: 2px;
+      }
+      .me {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 0 0 20px -8px;
+      }
+      .me div {
+        position: relative;
+        border-radius: 50%;
+        overflow: hidden;
+        width: 152px;
+        height: 152px;
+      }
+      .me img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+      }
+      p {
+        line-height: 1.5em;
+        margin: 0 0 12px 0;
+      }
+      a,
+      a:visited,
+      a:hover,
+      a:active,
+      a:focus {
+        color: #2196f3;
+        text-decoration: none;
+      }
+      @media (max-width: 500px) {
+        .outer {
+          align-items: flex-start;
+          justify-content: flex-start;
+        }
+        .inner {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="outer">
+      <div class="inner">
+        <div class="me">
+          <div><img src="me.jpg" alt="Ben Reinhart"></div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="mt5">
-    <div class="mw7 center">
-      <h5 class="pa0 ma0 mb3 f4 o-90">Work</h5>
-
-      <div class="shadow-4 mw7 center br1">
-        <div class="flex flex-row bb b--black-10 pv2 ph3">
-          <div class="w-40">
-            <p class="ma0 tl lh-solid small-caps f5">
-              fam
-            </p>
-          </div>
-
-          <div class="w-60">
-            <p class="ma0 tr lh-solid small-caps f5">
-              january 2015 &mdash; present
-            </p>
-          </div>
-        </div>
-
-        <div class="flex-ns flex-row-ns">
-          <div class="medium-square">
-            <div class="medium-square o-80 pa2">
-              {% include logos/fam.svg %}
-            </div>
-          </div>
-
-          <div class="ph3 pv4 ph4-ns pv0-ns flex flex-column justify-center items-center">
-            <p class="pa0 ma0 f5 lh-copy">
-              Co-founder. Build, deploy and maintain the web, API and mobile apps for <a href="https://getfam.com" class="blue">getfam.com</a>,
-              an app enabling communities to buy, sell and trade millions of dollars of items with each other.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="mv4 shadow-4 mw7 center br1">
-        <div class="flex flex-row bb b--black-10 pv2 ph3">
-          <div class="w-40">
-            <p class="ma0 tl lh-solid small-caps f5">
-              groupon
-            </p>
-          </div>
-
-          <div class="w-60">
-            <p class="ma0 tr lh-solid small-caps f5">
-              july 2011 &mdash; april 2014
-            </p>
-          </div>
-        </div>
-
-        <div class="flex-ns flex-row-ns">
-          <div class="medium-square">
-            <div class="medium-square pa2">
-              <img src="/images/groupon.jpg" class="o-90 db br1 br--left" />
-            </div>
-          </div>
-
-          <div class="nt4 mt0-ns ph3 pv4 ph4-ns pv0-ns flex flex-column justify-center items-center">
-            <p class="pa0 ma0 f5 lh-copy">
-              Software Engineer having contributed primarily to the main consumer-facing
-              <a href="https://groupon.com" class="blue">groupon.com</a> experience. Also developed internal APIs for merchant applications.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="mv3">
-        <p class="tc lh-copy">
-          View my <a href="https://www.linkedin.com/in/bereinhart" class="blue">LinkedIn</a>
-          or <a href="https://dl.dropboxusercontent.com/u/23776659/ben-reinhart-resume.pdf" class="blue">my resume</a> for more detailed work history.
+        <p>
+          I am a software engineer living in San Francisco. I have been writing web and mobile apps for the last 8 years, primarily with <b>Ruby</b> and <b>JavaScript</b>. Lately, I have been working heavily with <b>Python</b>, <b>React</b> and <b>React Native</b>.
+        </p>
+        <p>
+          I'm currently working at Nextdoor, building products on one of our monetization teams. Before that, I was a co-founder at a start up called <a href="http://getfam.com/">Fam</a>, an app that enabled hobbyist communities to safely buy, sell and trade items with each other.
+          In the past, I've also worked at Groupon, mentored at the Starter League, taught workshops and contributed to <a href="https://www.npmjs.com/~benjreinhart" title="npm">open</a> <a href="https://rubygems.org/profiles/benjreinhart" title="rubygems">source</a>.
+        </p>
+        <p>
+          A more detailed work history can be found on my <a href="https://www.linkedin.com/in/bereinhart">LinkedIn</a>. I am <a href="https://github.com/benjreinhart">@benjreinhart</a> on github. You can also <a href="mailto:benjreinhart@gmail.com">email me</a>.
         </p>
       </div>
     </div>
-  </section>
-
-  <section class="mt5">
-    <div class="mw7 center">
-      <h5 class="pa0 ma0 mb3 f4 o-90">Open Source Contributions</h5>
-
-      <div class="w-100 flex flex-wrap-s flex-row items-center content-between">
-        <a href="https://www.npmjs.com/~benjreinhart" title="Find me on NPM" class="grow no-underline black-70 db shadow-4 w-100 w-50-ns mb4 mr2-ns">
-          <div class="flex justify-center items-center f1 pa4">
-            <div class="large-square">
-              {% include logos/npm.svg %}
-            </div>
-          </div>
-          <p class="db bt b--black-10 ma0 pa2 lh-solid tc f5">
-            <strong class="b o-80">benjreinhart</strong> on npm
-          </p>
-        </a>
-
-        <a href="https://rubygems.org/profiles/benjreinhart" title="Find me on Rubygems" class="grow no-underline black-70 db shadow-4 w-100 w-50-ns mb4 ml2-ns">
-          <div class="flex justify-center items-center f1 pa4">
-            <div class="large-square">
-              {% include logos/rubygems.svg %}
-            </div>
-          </div>
-
-          <p class="db bt b--black-10 ma0 pa2 lh-solid tc f5">
-            <strong class="b o-80">benjreinhart</strong> on rubygems
-          </p>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <section class="mt5">
-    <div class="mw7 center">
-      <h5 class="pa0 ma0 mb3 f4 o-90">Social</h5>
-
-      <div class="flex-wrap flex flex-row items-center content-between">
-        <a href="https://twitter.com/benjreinhart" title="@benjreinhart" class="no-underline black-70 grow db shadow-4 w-100 w-auto-ns mb2 mr2-ns grow-1 flex justify-center items-center f1 w6 h4">
-          <i class="fa fa-twitter"></i>
-        </a>
-
-        <a href="https://www.linkedin.com/in/bereinhart" title="Ben Reinhart" class="no-underline black-70 grow db shadow-4 w-100 w-auto-ns mb2 mh2-ns grow-1 flex justify-center items-center f1 w6 h4">
-          <i class="fa fa-linkedin"></i>
-        </a>
-
-        <a href="https://github.com/benjreinhart" title="benjreinhart" class="no-underline black-70 grow db shadow-4 w-100 w-auto-ns mb2 mh2-ns grow-1 flex justify-center items-center f1 w6 h4">
-          <i class="fa fa-github"></i>
-        </a>
-
-        <a href="mailto:benjreinhart@gmail.com" title="benjreinhart@gmail.com" class="no-underline black-70 grow db shadow-4 w-100 w-auto-ns mb2 ml2-ns grow-1 flex justify-center items-center f1 w6 h4">
-          <i class="fa fa-envelope"></i>
-        </a>
-      </div>
-
-    </div>
-  </section>
-</div>
+    <script>
+      window.ga=function(){ga.q.push(arguments)};ga.q=[];ga.l=+new Date;
+      ga('create', 'UA-22235222-1', 'auto');
+      ga('send', 'pageview');
+    </script>
+    <script src='https://www.google-analytics.com/analytics.js' async defer></script>
+  </body>
+</html>
