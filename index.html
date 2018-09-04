@@ -7,96 +7,60 @@
     <title>Ben Reinhart</title>
     <meta name="description" content="Personal page of Ben Reinhart">
     <meta name="author" content="Ben Reinhart">
-    <meta name="keywords" content="Ben Reinhart, software, developer, engineer, dog dad">
+    <meta name="keywords" content="Ben Reinhart, software, developer, engineer">
     <meta property="og:title" content="Ben Reinhart" />
     <meta property="og:description" content="Software engineer living in San Francisco." />
     <meta property="og:url" content="http://benreinhart.com" />
     <meta property="og:type" content="website" />
     <style>
       /*! normalize.css v7.0.0 | MIT License | github.com/necolas/normalize.css */html{line-height:1.15;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}article,aside,footer,header,nav,section{display:block}h1{font-size:2em;margin:.67em 0}figcaption,figure,main{display:block}figure{margin:1em 40px}hr{box-sizing:content-box;height:0;overflow:visible}pre{font-family:monospace,monospace;font-size:1em}a{background-color:transparent;-webkit-text-decoration-skip:objects}abbr[title]{border-bottom:none;text-decoration:underline;text-decoration:underline dotted}b,strong{font-weight:inherit}b,strong{font-weight:bolder}code,kbd,samp{font-family:monospace,monospace;font-size:1em}dfn{font-style:italic}mark{background-color:#ff0;color:#000}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}audio,video{display:inline-block}audio:not([controls]){display:none;height:0}img{border-style:none}svg:not(:root){overflow:hidden}button,input,optgroup,select,textarea{font-family:sans-serif;font-size:100%;line-height:1.15;margin:0}button,input{overflow:visible}button,select{text-transform:none}[type=reset],[type=submit],button,html [type=button]{-webkit-appearance:button}[type=button]::-moz-focus-inner,[type=reset]::-moz-focus-inner,[type=submit]::-moz-focus-inner,button::-moz-focus-inner{border-style:none;padding:0}[type=button]:-moz-focusring,[type=reset]:-moz-focusring,[type=submit]:-moz-focusring,button:-moz-focusring{outline:1px dotted ButtonText}fieldset{padding:.35em .75em .625em}legend{box-sizing:border-box;color:inherit;display:table;max-width:100%;padding:0;white-space:normal}progress{display:inline-block;vertical-align:baseline}textarea{overflow:auto}[type=checkbox],[type=radio]{box-sizing:border-box;padding:0}[type=number]::-webkit-inner-spin-button,[type=number]::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}[type=search]::-webkit-search-cancel-button,[type=search]::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}details,menu{display:block}summary{display:list-item}canvas{display:inline-block}template{display:none}[hidden]{display:none}
+
       * {
         box-sizing: border-box;
       }
+
       body {
-        font-family: arial, helvetica, sans-serif;
-        color: rgba(0, 0, 0, 0.7);
-        fill: currentColor;
-        font-size: 16px;
-      }
-      .outer {
-        display: flex;
-        width: 100%;
+        font-family: "Courier New", Courier, monospace;
+        color: #ffffff;
+        font-size: 20px;
+        background-image: linear-gradient(to top, #fbc2eb 0%, #a6c1ee 100%);
+        width: 100vw;
         height: 100vh;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
       }
-      .inner {
-        width: 500px;
-        padding: 20px;
-        border-radius: 2px;
-      }
-      .me {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        margin: 0 0 20px -8px;
-      }
-      .me div {
-        position: relative;
-        border-radius: 50%;
-        overflow: hidden;
-        width: 152px;
-        height: 152px;
-      }
-      .me img {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        left: 0;
-        top: 0;
-      }
+
       p {
-        line-height: 1.5em;
-        margin: 0 0 12px 0;
+        padding: 0;
+        margin: 0;
+        padding: 6px 0;
       }
-      a,
-      a:visited,
-      a:hover,
-      a:active,
-      a:focus {
-        color: #2196f3;
-        text-decoration: none;
+
+      a, a:hover, a:visited, a:active, a:focus {
+        color: #ffffff;
+        text-decoration: underline;
       }
-      @media (max-width: 500px) {
-        .outer {
-          align-items: flex-start;
-          justify-content: flex-start;
-        }
-        .inner {
-          width: 100%;
-        }
+
+      .container {
+        padding: 16px;
       }
     </style>
   </head>
   <body>
-    <div class="outer">
-      <div class="inner">
-        <div class="me">
-          <div><img src="me.jpg" alt="Ben Reinhart"></div>
-        </div>
-        <p>
-          I am a software engineer living in San Francisco. I have been writing web and mobile apps for the last 8 years, primarily with <b>Ruby</b> and <b>JavaScript</b>. Lately, I have been working heavily with <b>Python</b>, <b>React</b> and <b>React Native</b>.
-        </p>
-        <p>
-          I'm currently working at Nextdoor, building products on one of our monetization teams. Before that, I was a co-founder at a start up called <a href="http://getfam.com/">Fam</a>, an app that enabled hobbyist communities to safely buy, sell and trade items with each other.
-          In the past, I've also worked at Groupon, mentored at the Starter League, taught workshops and contributed to <a href="https://www.npmjs.com/~benjreinhart" title="npm">open</a> <a href="https://rubygems.org/profiles/benjreinhart" title="rubygems">source</a>.
-        </p>
-        <p>
-          A more detailed work history can be found on my <a href="https://www.linkedin.com/in/bereinhart">LinkedIn</a>. I am <a href="https://github.com/benjreinhart">@benjreinhart</a> on github. You can also <a href="mailto:benjreinhart@gmail.com">email me</a>.
-        </p>
-      </div>
+
+    <div class="container">
+      <p>
+        <a href="https://www.linkedin.com/in/bereinhart">LinkedIn</a>
+      </p>
+      <p>
+        <a href="https://github.com/benjreinhart">Github</a>
+      </p>
+      <p>
+        <a href="https://twitter.com/benjreinhart">Twitter</a>
+      </p>
+      <p>
+        <a href="mailto:benjreinhart@gmail.com">benjreinhart@gmail.com</a>
+      </p>
     </div>
+
     <script>
       window.ga=function(){ga.q.push(arguments)};ga.q=[];ga.l=+new Date;
       ga('create', 'UA-22235222-1', 'auto');
