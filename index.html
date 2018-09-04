@@ -29,40 +29,85 @@
         height: 100vh;
       }
 
+      .container {
+        padding: 20px;
+      }
+
       p {
-        padding: 0;
         margin: 0;
         padding: 8px 0;
       }
 
       a, a:hover, a:visited, a:active, a:focus {
+        overflow: hidden;
+        white-space: nowrap;
         color: #ffffff;
         text-decoration: none;
         border-bottom: 1px solid #ffffff;
         letter-spacing: .15em;
       }
 
-      .container {
-        padding: 20px;
+      p.linkedin {
+        width: 120px;
+      }
+
+      p.github {
+        width: 90px;
+      }
+
+      p.twitter {
+        width: 105px;
+      }
+
+      p.email {
+        width: 330px;
+      }
+
+      @keyframes typing {
+        from { width: 0 }
+        to { width: 100% }
       }
     </style>
   </head>
   <body>
 
     <div class="container">
-      <p>
+      <p class="linkedin" id="js-linkedin">
         <a href="https://www.linkedin.com/in/bereinhart">LinkedIn</a>
       </p>
-      <p>
+      <p class="github" id="js-github">
         <a href="https://github.com/benjreinhart">Github</a>
       </p>
-      <p>
+      <p class="twitter" id="js-twitter">
         <a href="https://twitter.com/benjreinhart">Twitter</a>
       </p>
-      <p>
+      <p class="email" id="js-email">
         <a href="mailto:benjreinhart@gmail.com">benjreinhart@gmail.com</a>
       </p>
     </div>
+
+    <script>
+      (function() {
+        var linkedin = document.getElementById('js-linkedin').children[0];
+        var github = document.getElementById('js-github').children[0];
+        var twitter = document.getElementById('js-twitter').children[0];
+        var email = document.getElementById('js-email').children[0];
+
+        linkedin.style = 'display: none;'
+        github.style = 'display: none;'
+        twitter.style = 'display: none;'
+        email.style = 'display: none;'
+
+        var animate = function(element, timing) {
+          element.style = 'display: block; animation: typing ' + timing + ' steps(120, end);'
+        };
+
+        setTimeout(animate.bind(null, linkedin, '.4s'), 200);
+        setTimeout(animate.bind(null, github, '.4s'), 605);
+        setTimeout(animate.bind(null, twitter, '.4s'), 1010);
+        setTimeout(animate.bind(null, email, '.7s'), 1415);
+      })();
+    </script>
 
     <script>
       window.ga=function(){ga.q.push(arguments)};ga.q=[];ga.l=+new Date;
