@@ -1,14 +1,15 @@
----
-layout: default
----
-<style>
-  body {
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-  }
-</style>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {%- include shared_head.html -%}
 
-<main class="home-page" aria-label="Content">
-  {{ content }}
-</main>
+    <link rel="stylesheet" href="{{ "/assets/css/home.css" | relative_url }}">
+  </head>
+  <body>
+
+    <main aria-label="Content">
+      {{content}}
+    </main>
+
+  </body>
+</html>

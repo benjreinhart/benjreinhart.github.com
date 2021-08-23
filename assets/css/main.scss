@@ -1,0 +1,178 @@
+---
+---
+@import "modern_normalize";
+@import "highlight";
+
+$text-color: rgb(94, 94, 94);
+$link-color: rgb(51, 153, 204);
+
+body {
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1.5;
+  color: $text-color;
+  background-color: #FCFCFC;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3 {
+  margin: 40px 0 20px 0;
+}
+
+h1 {
+  font-size: 2em;
+  font-weight: 300;
+}
+
+h2 {
+  font-size: 1.5em;
+  font-weight: 300;
+}
+
+h3 {
+  font-size: 1em;
+  font-weight: bold;
+}
+
+a, a:hover, a:visited, a:focus, a:active {
+  color: $link-color;
+  text-decoration: none;
+}
+
+b, strong {
+  font-weight: bold;
+}
+
+pre {
+  padding: 0;
+  margin: 0;
+}
+
+p {
+  margin: 0 0 20px 0;
+}
+
+.site-header {
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 32px;
+
+  nav {
+    width: 180px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+    font-weight: 400;
+  }
+}
+
+.page-container {
+  width: 100%;
+  max-width: 800px;
+  padding: 32px 40px 100px 40px;
+  margin: 0 auto;
+}
+
+.post-page-footer {
+  border-top: 1px solid #eee;
+  padding: 16px 0;
+  margin-top: 40px;
+  font-size: 14px;
+
+  span::after {
+    content: " | ";
+    font-size: 16px;
+    padding: 0 4px;
+  }
+
+  span:last-child::after {
+    content: none;
+    padding: 0;
+  }
+}
+
+.post-title {
+  text-align: center;
+  margin: 0;
+}
+
+.post-meta {
+  font-size: 15px;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.post-content {
+  p {
+    line-height: 1.8;
+  }
+}
+
+code.highlighter-rouge {
+  padding: 3px;
+  border-radius: 3px;
+  font-size: 14px;
+  background-color: #fff;
+  border: 1px solid #f7bdc7;
+}
+
+div.highlighter-rouge {
+  margin: 0 0 20px 0;
+
+  pre {
+    padding: 1em;
+    font-size: 14px;
+    background-color: #fff;
+    border: 1px solid #f7bdc7;
+    border-radius: 3px;
+    overflow-x: scroll;
+  }
+}
+
+.post-list {
+  h2 {
+    margin: 0;
+
+    a, a:visited {
+      color: $text-color;
+    }
+
+    a:hover {
+      color: $link-color;
+    }
+  }
+
+  .post-meta {
+    text-align: left;
+    margin-bottom: 20px;
+  }
+
+  .post {
+    margin-bottom: 48px;
+  }
+
+  .post-excerpt p {
+    margin-bottom: 8px;
+  }
+
+  .read-more {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 400;
+
+    span {
+      opacity: 0.7;
+      padding-top: 2px;
+    }
+  }
+}

@@ -1,11 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    {%- include shared_head.html -%}
 
-  {%- include head.html -%}
-
+    <link rel="stylesheet" href="{{ "/assets/css/main.css" | relative_url }}">
+  </head>
   <body>
 
-    {{content}}
+    <header class="site-header">
+      <nav>
+        <a href="{{ "/" | relative_url }}">Site home</a>
+        <a href="{{ "/blog" | relative_url }}">Blog home</a>
+      </nav>
+    </header>
+
+    <main aria-label="Content">
+      {{content}}
+    </main>
 
   </body>
 </html>

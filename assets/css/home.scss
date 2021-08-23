@@ -1,0 +1,41 @@
+---
+---
+@import "modern_normalize";
+
+body, main {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+main {
+  color: #1F2833;
+  font-size: 18px;
+  line-height: 1.5em;
+  background: url("/assets/images/bella.jpg") no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
+nav {
+  display: flex;
+  justify-content: start;
+  padding: 24px 60px;
+}
+
+nav a, nav a:active, nav a:hover, nav a:visited, nav a:focus {
+  color: #1F2833;
+}
+
+nav a {
+  margin: 0 12px;
+}
+
+@media screen and (max-width: 760px) {
+  nav {
+    padding: 24px 0;
+    justify-content: center;
+  }
+}

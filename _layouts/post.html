@@ -1,0 +1,26 @@
+---
+layout: default
+---
+
+<section class="page-container">
+  <article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+      <h1 class="post-title" itemprop="name headline">{{ page.title | escape }}</h1>
+      <p class="post-meta">
+        <time datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">
+          {{ page.date | date: site.blog.date_format }}
+        </time>
+      </p>
+    </header>
+
+    <div class="post-content" itemprop="articleBody">
+      {{ content }}
+    </div>
+  </article>
+
+  <footer class="post-page-footer">
+    <span>© 2021 <a href="/">Ben Reinhart</a></span>
+    <span><a href="/blog">Blog home</a></span>
+    <span>Follow <a href="{{site.twitter_link}}">@benjreinhart</a></span>
+  </footer>
+</section>
