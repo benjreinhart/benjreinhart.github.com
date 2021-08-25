@@ -4,7 +4,12 @@
 @import "highlight";
 
 $text-color: rgb(94, 94, 94);
+$text-color-lighter: lighten($color: $text-color, $amount: 10%);
+
 $link-color: rgb(51, 153, 204);
+
+$border-color: #eee;
+$border-color-darker: darken($color: $border-color, $amount: 10%);
 
 body {
   font-size: 18px;
@@ -56,6 +61,18 @@ p {
   margin: 0 0 20px 0;
 }
 
+blockquote {
+  margin: 32px 0;
+  padding: 0 16px;
+  font-size: 16px;
+  color: $text-color-lighter;
+  border-left: 0.25em solid $border-color-darker;
+
+  p {
+    margin: 0;
+  }
+}
+
 .site-header {
   height: 60px;
   min-height: 60px;
@@ -83,7 +100,7 @@ p {
 }
 
 .post-page-footer {
-  border-top: 1px solid #eee;
+  border-top: 1px solid $border-color;
   padding: 16px 0;
   margin-top: 40px;
   font-size: 14px;
