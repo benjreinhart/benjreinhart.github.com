@@ -165,14 +165,14 @@ div.highlighter-rouge {
   }
 
   .read-more {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     font-size: 16px;
     font-weight: 400;
 
     span {
       opacity: 0.7;
-      padding-top: 2px;
+      padding: 2px 0 0 4px;
     }
   }
 }
