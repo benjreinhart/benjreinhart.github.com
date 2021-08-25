@@ -4,6 +4,9 @@ description: >-
   Personal website and blog of Ben Reinhart
 keywords:
   - ben reinhart
+  - website
+  - blog
+  - software
   - software developer
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://benreinhart.com"
