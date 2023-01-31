@@ -59,6 +59,12 @@ pre {
 
 p {
   margin: 0 0 20px 0;
+  overflow-wrap: break-word;
+}
+
+p.small {
+  font-size: 0.75em;
+  line-height: 1em;
 }
 
 ol, ul {
