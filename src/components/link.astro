@@ -1,0 +1,12 @@
+---
+import type { HTMLAttributes } from 'astro/types'
+
+type Props = HTMLAttributes<'a'>;
+
+const { class: className, ...rest } = Astro.props;
+---
+<a {...rest} class:list={[
+  "decoration-1 hover:decoration-2 decoration-success/75 hover:decoration-success",
+  "underline-offset-4 hover:underline transition ease-in duration-100",
+  className
+]}><slot /></a>

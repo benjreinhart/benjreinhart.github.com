@@ -1,61 +1,66 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Link from '../components/link.astro';
 ---
 
 <Layout title="Ben Reinhart">
-	<main class="prose prose-slate dark:prose-invert my-0 py-12 px-4 md:py-16 md:px-0 md:mx-auto">
-		<h2><span class="mr-2">👋</span> Hello, I'm Ben</h2>
-		<p>
-			I'm a software engineer living in San Francisco.
-		</p>
-		<p>
-			Currently, I'm a co-founder at <a href="https://axflow.dev">Axflow</a>, a YC-backed (S23) company.
-			I was previously the first hire at <a href="https://privy.io">Privy</a>, working on authentication and end-to-end encryption APIs for data privacy.
-			Before that, I was the tech lead for the data management platform at <a href="https://getcruise.com">Cruise</a>, which hosts the data used to train and evaluate models that drive cars.
-		</p>
-		<p>
-			I moved to the bay area when my first startup was bought by <a href="https://nextdoor.com">Nextdoor</a>.
-		</p>
-		<p>Outside of work, I love to climb, pet dogs, and occasionally compete in triathlons.</p>
-		<h2>Projects</h2>
-		<dl>
-			<dt>
-				<a href="https://github.com/privy-io/shamir-secret-sharing">Shamir Secret Sharing</a>
-			</dt>
-			<dd class="my-5">
-				TypeScript implementation of <a href="https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing">Shamir's Secret Sharing algorithm</a>.
-				This project underwent a <a href="https://cure53.de/audit-report_privy-sss-library.pdf">formal audit</a> by <a href="https://cure53.de/">Cure53</a>.
-			</dd>
-			<dt>
-				<a href="https://github.com/benjreinhart/secure-password-utilities">Secure Password Utilities</a>
-			</dt>
-			<dd class="my-5">
-				Utilities for generating secure passwords, passphrases, pins, and more. Part of a larger effort to create a password manager using github pages as a backend.
-			</dd>
-			<dt>
-				<a href="https://github.com/apache/superset">Apache Superset</a>
-			</dt>
-			<dd class="my-5">
-				I was previously one of the contributors of the Apache Superset project. You can see those <a href="https://github.com/apache/superset/pulls?q=author%3Abenjreinhart">contributions here</a>.
-			</dd>
-			<dt>
-				<a href="https://github.com/benjreinhart/rayven">Rayven</a>
-			</dt>
-			<dd class="my-5">
-				Secure data sharing application. Useful for sharing sensitive values (api keys, passwords, etc) with coworkers. Excuse to push <a href="https://github.com/phoenixframework/phoenix_live_view">LiveView</a> to its limits.
-			</dd>
-			<dt>
-				<a href="https://github.com/benjreinhart/ex_kdl">ExKDL</a>
-			</dt>
-			<dd class="my-5">
-				An implementation of the <a href="https://kdl.dev">KDL Document Language</a>. I used this as an excuse to play with two things I love, compilers and Elixir.
-			</dd>
-			<dt>
-				<a href="https://github.com/benjreinhart/react-native-aws3">React Native S3</a>
-			</dt>
-			<dd class="my-5">
+	<main class="px-8 py-12 flex justify-center">
+		<div class="prose text-lg lg:text-base">
+			<h2><span class="mr-2">👋</span> Hello, I'm Ben</h2>
+
+			<p>
+				I'm a software engineer living in San Francisco.
+			</p>
+			<p>
+				Currently, I'm a co-founder at <Link href="https://axflow.dev">Axflow</Link>, a YC-backed (S23) company.
+				I was previously the first hire at <Link href="https://privy.io">Privy</Link>, working on authentication and end-to-end encryption APIs for data privacy.
+				Before that, I was the tech lead for the data management platform at <Link href="https://getcruise.com">Cruise</Link>, which hosts the data used to train and evaluate models that drive cars.
+			</p>
+			<p>
+				I moved to the bay area when my first startup was bought by <Link href="https://nextdoor.com">Nextdoor</Link>.
+			</p>
+
+			<h2>Projects</h2>
+
+			<dl class="space-y-5">
+				<dt>
+					<Link href="https://github.com/privy-io/shamir-secret-sharing">Shamir Secret Sharing</Link>
+				</dt>
+				<dd class="pb-6">
+					TypeScript implementation of <Link href="https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing">Shamir's Secret Sharing algorithm</Link>.
+					This project underwent a <Link href="https://cure53.de/audit-report_privy-sss-library.pdf">formal audit</Link> by <Link href="https://cure53.de/">Cure53</Link>.
+				</dd>
+				<dt>
+					<Link href="https://github.com/benjreinhart/secure-password-utilities">Secure Password Utilities</Link>
+				</dt>
+				<dd class="pb-6">
+					Utilities for generating secure passwords, passphrases, pins, and more. Part of a larger effort to create a password manager using github pages as a backend.
+				</dd>
+				<dt>
+					<Link href="https://github.com/apache/superset">Apache Superset</Link>
+				</dt>
+				<dd class="pb-6">
+					I was previously one of the contributors of the Apache Superset project. You can see those <Link href="https://github.com/apache/superset/pulls?q=author%3Abenjreinhart">contributions here</Link>.
+				</dd>
+				<dt>
+					<Link href="https://github.com/benjreinhart/rayven">Rayven</Link>
+				</dt>
+				<dd class="pb-6">
+					Secure data sharing application. Useful for sharing sensitive values (api keys, passwords, etc) with coworkers. Excuse to push <Link href="https://github.com/phoenixframework/phoenix_live_view">LiveView</Link> to its limits.
+				</dd>
+				<dt>
+					<Link href="https://github.com/benjreinhart/ex_kdl">ExKDL</Link>
+				</dt>
+				<dd class="pb-6">
+					An implementation of the <Link href="https://kdl.dev">KDL Document Language</Link>. I used this as an excuse to play with two things I love, compilers and Elixir.
+				</dd>
+				<dt>
+					<Link href="https://github.com/benjreinhart/react-native-aws3">React Native S3</Link>
+				</dt>
+				<dd class="pb-6">
 				Upload objects to S3 in React Native without requiring any platform-native dependencies. My most popular OSS library.
-			</dd>
-		</ul>
+				</dd>
+			</dl>
+		</div>
 	</main>
 </Layout>
