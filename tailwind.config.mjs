@@ -5,7 +5,7 @@ import DaisyUIPlugin from 'daisyui';
 export default {
   content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
   daisyui: {
-    themes: false,
+    themes: ['light', 'dark'],
   },
   theme: {
     extend: {},
