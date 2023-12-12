@@ -10,7 +10,7 @@ export const components = {a: Link}
 
 <PostHeader {...frontmatter} />
 
-At [Axflow](https://axflow.dev), we are building [open source tooling](https://github.com/axflow/axflow) to help developers integrate LLM applications into their products.
+At [Axflow](https://axflow.dev), we are building [open source tooling](https://github.com/axflow/axflow) to help developers integrate large language models into their products.
 The majority of this tooling has been written in TypeScript, though I've been exploring replacing part of our stack with a Phoenix application. I recently implemented
 the component that streams OpenAI assistant responses back to our client.
 
@@ -349,6 +349,6 @@ content-type: application/x-ndjson; charset=utf-8
 
 ## Wrapping up
 
-Elixir is joy to work with. Here it took less than 70 lines of code to write a fully-functional chat completions wrapper and streaming API endpoint.
+Elixir is joy to work with. Here it took less than 70 lines of code to write a OpenAI wrapper, map over the source streams, and stream it back to the client.
 
 It's worth noting that community-maintained OpenAI clients exist for Elixir, but like with many things in this ecosystem, I find that the language itself often provides what I need without having to reach for third-party libraries.
