@@ -202,30 +202,32 @@ We implemented two functions, `chat_completion/1` and `chat_completion/2`, the f
 Rather than ask callers to remember this, let's remove the `stream` property from being a responsibility of the caller.
 We can add a function to ensure the request body's `stream` property is the expected value in all cases.
 
-```elixir
-def chat_completion(request) do
-  Req.post(@chat_completions_url,
-    json: set_stream(request, false),
-    auth: {:bearer, api_key()}
-  )
-end
+```diff
+  def chat_completion(request) do
+    Req.post(@chat_completions_url,
+-     json: request,
++     json: set_stream(request, false),
+      auth: {:bearer, api_key()}
+    )
+  end
 
-def chat_completion(request, callback) do
-  Req.post(@chat_completions_url,
-    json: set_stream(request, true),
-    auth: {:bearer, api_key()},
-    into: fn {:data, data}, acc ->
-      Enum.each(parse(data), callback)
-      {:cont, acc}
-    end
-  )
-end
+  def chat_completion(request, callback) do
+    Req.post(@chat_completions_url,
+-     json: request,
++     json: set_stream(request, true),
+      auth: {:bearer, api_key()},
+      into: fn {:data, data}, acc ->
+        Enum.each(parse(data), callback)
+        {:cont, acc}
+      end
+    )
+  end
 
-defp set_stream(request, value) do
-  request
-  |> Map.drop([:stream, "stream"])
-  |> Map.put(:stream, value)
-end
++ defp set_stream(request, value) do
++   request
++   |> Map.drop([:stream, "stream"])
++   |> Map.put(:stream, value)
++ end
 ```
 
 With that, our module to handle both streaming and non-streaming calls to OpenAI's chat completion endpoint is complete! Below is the final code:
@@ -347,4 +349,6 @@ content-type: application/x-ndjson; charset=utf-8
 
 ## Wrapping up
 
-Elixir is joy to work with. It took less than 70 lines of code to write a fully-functional chat completions wrapper and streaming API endpoint.
+Elixir is joy to work with. Here it took less than 70 lines of code to write a fully-functional chat completions wrapper and streaming API endpoint.
+
+It's worth noting that community-maintained OpenAI clients exist for Elixir, but like with many things in this ecosystem, I find that the language itself often provides what I need without having to reach for third-party libraries.
