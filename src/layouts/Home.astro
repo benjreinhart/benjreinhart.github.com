@@ -1,0 +1,38 @@
+---
+import "../styles/base.css";
+import Header from "../components/header.astro";
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+
+		<meta name="description" content="Personal website and blog of Ben Reinhart">
+		<meta name="author" content="Ben Reinhart">
+		<meta name="keywords" content="ben reinhart, website, blog, software, founder, software developer">
+
+		<meta property="og:type" content="website" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:title" content="Ben Reinhart" />
+		<meta property="og:description" content="Personal website and blog of Ben Reinhart" />
+		<meta property="og:url" content="https://benreinhart.com/" />
+
+		<script defer data-domain="benreinhart.com" src="https://plausible.io/js/script.js"></script>
+
+		<script>
+			const theme = localStorage.getItem('theme');
+			if (theme) { document.documentElement.dataset.theme = theme; }
+		</script>
+
+		<title>Ben Reinhart</title>
+	</head>
+	<body>
+		<Header />
+		<slot />
+	</body>
+</html>

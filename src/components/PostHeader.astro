@@ -1,0 +1,28 @@
+---
+interface Props {
+  title: string;
+  published: string;
+}
+
+const { title, published } = Astro.props;
+
+const date = new Date(published);
+const dateISOString = date.toISOString();
+const dateHumanString = date.toLocaleString(undefined, {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+<header class="flex flex-col">
+  <h1 class="order-2 mb-4">{title}</h1>
+  <div class="text-sm leading-6 order-1">
+    <dl>
+      <dt class="sr-only">Date</dt>
+      <dd class="inset-x-0 pl-0">
+        <time datetime={dateISOString}>{dateHumanString}</time>
+      </dd>
+    </dl>
+  </div>
+</header>

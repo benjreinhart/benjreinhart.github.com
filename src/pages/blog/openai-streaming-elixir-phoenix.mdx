@@ -1,0 +1,341 @@
+---
+layout: ../../layouts/Blog.astro
+title: Streaming OpenAI in Elixir Phoenix
+description: How I implemented streaming OpenAI chat completions from scratch using Elixir and Phoenix
+published: 2023-12-12T00:55:43.715Z
+---
+import PostHeader from '../../components/PostHeader.astro'
+import Link from '../../components/link.astro';
+export const components = {a: Link}
+
+<PostHeader {...frontmatter} />
+
+At [Axflow](https://axflow.dev), we are building [open source tooling](https://github.com/axflow/axflow) to help developers integrate LLM applications into their products.
+The majority of this tooling has been written in TypeScript, though I've been exploring replacing part of our stack with a Phoenix application. I recently implemented
+the component that streams OpenAI assistant responses back to our client.
+
+This post walks through the basics of calling OpenAI and streaming the response. If you follow along you'll need a Phoenix application and an OpenAI API key.
+
+## Calling OpenAI without streaming
+
+To start simple and work our way up, let's first write code to call OpenAI's chat completion endpoint _without_ streaming the response.
+
+Since this was a brand new Phoenix application, I started by adding [Req](https://github.com/wojtekmach/req) to my list of dependencies as we'll need an HTTP client.
+
+```elixir
+{:req, "~> 0.4.0"}
+```
+
+Next I created a module named `MyApp.Openai` at `lib/my_app/openai.ex`. The initial requirements are:
+
+1. Be able to perform HTTP requests to OpenAI
+2. Ensure our HTTP requests are properly authenticated by their API
+3. Parse the JSON response into Elixir objects
+
+Req will automatically parse (non-streaming) JSON responses, leaving us to implement only the first two.
+
+```elixir
+defmodule MyApp.Openai do
+  @chat_completions_url "https://api.openai.com/v1/chat/completions"
+
+  def chat_completion(request) do
+    Req.post(@chat_completions_url, json: request)
+  end
+end
+```
+
+This code will call OpenAI's chat completion endpoint, but without authentication the request will fail.
+
+OpenAI expects your API key in the `Authorization` header to [authenticate to their API](https://platform.openai.com/docs/api-reference/authentication).
+Before adding the API key to the request, the app must be configured with the key. In my case, I read the key from an environment variable in `config/runtime.exs`.
+
+```elixir
+config :my_app, :openai, api_key: System.get_env("OPENAI_API_KEY")
+```
+
+Now we need to tell Req to add this key to the request. Req even has some sugar for the `Authorization` header.
+
+```elixir
+defmodule MyApp.Openai do
+  @chat_completions_url "https://api.openai.com/v1/chat/completions"
+
+  def chat_completion(request) do
+    Req.post(@chat_completions_url,
+      json: request,
+      auth: {:bearer, api_key()}
+    )
+  end
+
+  defp api_key() do
+    Application.get_env(:my_app, :openai)[:api_key]
+  end
+end
+```
+
+We can open up a shell with `iex -S mix` to try it out:
+
+```iex
+iex> {:ok, %{body: response}} = MyApp.Openai.chat_completion(%{ model: "gpt-3.5-turbo", messages: [%{role: "user", content: "Hello 3.5!"}] })
+iex> response
+%{
+  "choices" => [
+    %{
+      "finish_reason" => "stop",
+      "index" => 0,
+      "message" => %{
+        "content" => "Hello! How can I assist you today?",
+        "role" => "assistant"
+      }
+    }
+  ],
+  # ...
+  }
+}
+```
+
+## Streaming the response
+
+OpenAI's API supports streaming responses. To stream the response, we need to set [`stream` to `true` in the request body](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream).
+
+We can [handle streams in Req a few ways](https://github.com/wojtekmach/req/blob/6549765523d29b81170a0a610ca0ec7b2345ac98/lib/req/request.ex#L74-L88), but here we'll use the callback function.
+Let's add another clause for the `chat_completion` function that takes two arguments. `chat_completion/2` will be defined as:
+
+```elixir
+def chat_completion(request, callback) do
+  Req.post(@chat_completions_url,
+    json: request,
+    auth: {:bearer, api_key()},
+    into: fn {:data, data}, context ->
+      callback.(data)
+      {:cont, context}
+    end
+  )
+end
+```
+
+If we run this, setting `stream` to `true` in the request, we'll see the response data as raw server sent events.
+
+```elixir
+MyApp.Openai.chat_completion(
+  %{
+    model: "gpt-3.5-turbo",
+    stream: true,
+    messages: [%{role: "user", content: "Hello 3.5!"}]
+  },
+  &IO.puts/1
+)
+```
+
+Notice that the format for each event is `data: <json-encoded data>\n\n`, except the last which is always `data: [DONE]\n\n`. For example:
+
+```
+data: {"id":"chatcmpl-8UmwRPfWQVApzdIPgAtpcF3RnpeEr","object":"chat.completion.chunk","created":1702348663,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+
+```
+
+It's worth noting that some chunks in the streamed response contain multiple of these events, while others on have one. We must keep this in mind when parsing.
+
+### Parsing the events into Elixir data structures
+
+When we stream the response, we need to handle parsing the data ourselves. Thanks to Elixir's proper string/binary data handling, we don't have to differentiate between raw bytes and language-level strings.
+We can also rest assured that Elixir will properly handle unicode, encodings, graphemes, etc. Parsing these events is therefore a simple string parsing exercise.
+
+Given the following streaming input
+
+```
+data: {"json":"object"}
+
+data: {"json":"object 2"}
+
+data: {"json":"object N"}
+
+data: [DONE]
+
+
+```
+
+1. Strip `data: ` from the chunk
+2. Remove the trailing newlines
+3. Extract and parse the JSON object
+
+This is trivial to express in Elixir:
+
+```elixir
+defp parse(chunk) do
+  chunk
+  |> String.split("data: ")
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(&decode/1)
+  |> Enum.reject(&is_nil/1)
+end
+
+defp decode(""), do: nil
+defp decode("[DONE]"), do: nil
+defp decode(data), do: Jason.decode!(data)
+```
+
+The `decode/1` function will receive some empty strings as a result of the string splitting, so we must ignore those. It must also ignore the final `data: [DONE]` event. Beyond that, we extract the JSON and we're done!
+
+Lastly, we need to update `chat_completions/2` to make use of `parse/1`. Remove the line that invokes the callback and replace it with the following:
+
+```git
+- callback.(data)
++ Enum.each(parse(data), callback)
+```
+
+If we run our `chat_completion/2` function with a callback that prints its argument, we'll see each chunk of the stream as an Elixir map!
+
+### Improving the interface
+
+Before moving on, one thing we should do to make our code robust is to ensure its used correctly.
+We implemented two functions, `chat_completion/1` and `chat_completion/2`, the first does not support streaming while the second expects it.
+Rather than ask callers to remember this, let's remove the `stream` property from being a responsibility of the caller.
+We can add a function to ensure the request body's `stream` property is the expected value in all cases.
+
+```elixir
+def chat_completion(request) do
+  Req.post(@chat_completions_url,
+    json: set_stream(request, false),
+    auth: {:bearer, api_key()}
+  )
+end
+
+def chat_completion(request, callback) do
+  Req.post(@chat_completions_url,
+    json: set_stream(request, true),
+    auth: {:bearer, api_key()},
+    into: fn {:data, data}, acc ->
+      Enum.each(parse(data), callback)
+      {:cont, acc}
+    end
+  )
+end
+
+defp set_stream(request, value) do
+  request
+  |> Map.drop([:stream, "stream"])
+  |> Map.put(:stream, value)
+end
+```
+
+With that in place our module to handle both streaming and non-streaming calls to OpenAI's chat completion endpoint is in place! The final code is as follows:
+
+```elixir
+defmodule MyApp.Openai do
+  @chat_completions_url "https://api.openai.com/v1/chat/completions"
+
+  def chat_completion(request) do
+    Req.post(@chat_completions_url,
+      json: set_stream(request, false),
+      auth: {:bearer, api_key()}
+    )
+  end
+
+  def chat_completion(request, callback) do
+    Req.post(@chat_completions_url,
+      json: set_stream(request, true),
+      auth: {:bearer, api_key()},
+      into: fn {:data, data}, acc ->
+        Enum.each(parse(data), callback)
+        {:cont, acc}
+      end
+    )
+  end
+
+  defp set_stream(request, value) do
+    request
+    |> Map.drop([:stream, "stream"])
+    |> Map.put(:stream, value)
+  end
+
+  defp parse(chunk) do
+    chunk
+    |> String.split("data: ")
+    |> Enum.map(&String.trim/1)
+    |> Enum.map(&decode/1)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp decode(""), do: nil
+  defp decode("[DONE]"), do: nil
+  defp decode(data), do: Jason.decode!(data)
+
+  defp api_key() do
+    Application.get_env(:my_app, :openai)[:api_key]
+  end
+end
+```
+
+## Streaming from Phoenix
+
+My use case requires me to stream the OpenAI response from a JSON API endpoint and the response content must be [newline-delimited json](https://ndjson.org).
+The POST request body for this endpoint is expected to have a single key named `request` that contains any of the values supported by OpenAI's chat completion endpoint.
+
+Let's create an file at `lib/my_app_web/controllers/api/chat_controller.ex` with the following code.
+
+```elixir
+defmodule MyApp.Api.ChatController do
+  use MyAppWeb, :controller
+
+  @nd_json_content_type "application/x-ndjson"
+
+  def stream(conn, %{"request" => request}) do
+    conn =
+      conn
+      |> put_resp_content_type(@nd_json_content_type)
+      |> send_chunked(200)
+
+    MyApp.Openai.chat_completion(request, fn data ->
+      result = Jason.encode!(data)
+      chunk(conn, result)
+      chunk(conn, "\n")
+    end)
+
+    conn
+  end
+end
+```
+
+_Note: Any request input validation is an exercise for the reader._
+
+The last thing we need to do is add a route to our routes file to expose this endpoint.
+
+```elixir
+pipeline :api do
+  plug :accepts, ["json"]
+end
+
+scope "/api", MyAppWeb.Api do
+  pipe_through [:api]
+
+  post "/chat", ChatController, :stream
+end
+```
+
+_Note: Here we configure the :api plug only for JSON. By default it also fetches the session, which may fail if you want to try out the below curl request._
+
+Boom! We can now stream OpenAI chat completion responses through our Elixir Phoenix application, with a response content type (newline-delimited JSON) that is dead simple for clients to parse.
+
+```
+curl -i 'http://localhost:4000/api/chat' -H "content-type: application/json" --data-raw '{"model":"gpt-3.5-turbo","temperature":1,"messages":[{"role":"user","content":"Hello 3.5!"}]}'
+HTTP/1.1 200 OK
+transfer-encoding: chunked
+content-type: application/x-ndjson; charset=utf-8
+
+{"type":"chunk","value":{"choices":[{"delta":{"content":"","role":"assistant"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":"Hello"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":"!"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":" How"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":" can"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":" I"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":" assist"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":" you"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":" today"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{"content":"?"},"finish_reason":null,"index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+{"type":"chunk","value":{"choices":[{"delta":{},"finish_reason":"stop","index":0}],"created":1702354322,"id":"chatcmpl-8UoPiI5xF9NbwnPVgsPOPtTHCN8MS","model":"gpt-3.5-turbo-0613","object":"chat.completion.chunk","system_fingerprint":null}}
+```
+
+## Wrapping up
+
+Elixir is joy to work with. It took less than 70 lines of code to write a fully-functional chat completions wrapper and streaming API endpoint.
