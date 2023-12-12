@@ -20,3 +20,7 @@ html[data-theme="light"] .social-icon path { fill: black }
 html[data-theme="dark"] #icon-sun { display: none; }
 html[data-theme="dark"] #icon-moon { display: block; }
 html[data-theme="dark"] .social-icon path { fill: white }
+
+article p {
+  overflow-wrap: break-word;
+}
