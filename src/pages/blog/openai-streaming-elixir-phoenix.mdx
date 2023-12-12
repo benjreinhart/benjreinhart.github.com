@@ -283,7 +283,7 @@ end
 My use case requires me to stream the OpenAI response from a JSON API endpoint and the response content must be [newline-delimited json](https://ndjson.org).
 The POST request body for this endpoint is expected to have a single key named `request` that contains any of the values supported by OpenAI's chat completion endpoint.
 
-Let's create an file at `lib/my_app_web/controllers/api/chat_controller.ex` with the following code.
+Create `lib/my_app_web/controllers/api/chat_controller.ex` and add the following code.
 
 ```elixir
 defmodule MyApp.Api.ChatController do
