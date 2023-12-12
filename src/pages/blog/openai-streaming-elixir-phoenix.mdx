@@ -134,11 +134,11 @@ data: {"id":"chatcmpl-8UmwRPfWQVApzdIPgAtpcF3RnpeEr","object":"chat.completion.c
 
 ```
 
-It's worth noting that some chunks in the streamed response contain multiple of these events, while others on have one. We must keep this in mind when parsing.
+It's worth noting that some chunks in the streamed response contain multiple of these events, while others may only have one. We must keep this in mind when parsing.
 
 ### Parsing the events into Elixir data structures
 
-When we stream the response, we need to handle parsing the data ourselves. Thanks to Elixir's proper string/binary data handling, we don't have to differentiate between raw bytes and language-level strings.
+When we stream the response, we need to handle parsing the data ourselves. Thanks to Elixir, we don't have to differentiate between raw bytes and language-level strings.
 We can also rest assured that Elixir will properly handle unicode, encodings, graphemes, etc. Parsing these events is therefore a simple string parsing exercise.
 
 Given the following streaming input
@@ -175,7 +175,8 @@ defp decode("[DONE]"), do: nil
 defp decode(data), do: Jason.decode!(data)
 ```
 
-The `decode/1` function will receive some empty strings as a result of the string splitting, so we must ignore those. It must also ignore the final `data: [DONE]` event. Beyond that, we extract the JSON and we're done!
+The `decode/1` function will receive some empty strings as a result of the string splitting, so we must ignore those. It must also ignore the final `[DONE]` event.
+Otherwise, we return the decoded JSON. Once `parse/1` rejects the `nil` values, we're left with only the decoded JSON.
 
 Lastly, we need to update `chat_completions/2` to make use of `parse/1`. Remove the line that invokes the callback and replace it with the following:
 
@@ -281,7 +282,7 @@ end
 ## Streaming from Phoenix
 
 My use case requires me to stream the OpenAI response from a JSON API endpoint and the response content must be [newline-delimited json](https://ndjson.org).
-The POST request body for this endpoint is expected to have a single key named `request` that contains any of the values supported by OpenAI's chat completion endpoint.
+The POST request body for this endpoint is expected to have a single key named `request` that contains any values supported by [OpenAI's chat completion request](https://platform.openai.com/docs/api-reference/chat/create).
 
 Create `lib/my_app_web/controllers/api/chat_controller.ex` and add the following code.
 
@@ -324,9 +325,9 @@ scope "/api", MyAppWeb.Api do
 end
 ```
 
-_Note: Here we configure the :api plug only for JSON. By default it also fetches the session, which may fail if you want to try out the below curl request._
+_Note: Here we configure the :api pipeline only for JSON. By default it also fetches the session, which will fail if you want to try out the below curl request._
 
-Boom! We can now stream OpenAI chat completion responses through our Elixir Phoenix application, with a response content type (newline-delimited JSON) that is dead simple for clients to parse.
+Boom! We can now stream OpenAI chat completion responses through our Phoenix application using a response format that is dead simple for clients to parse.
 
 ```
 curl -i 'http://localhost:4000/api/chat' -H "content-type: application/json" --data-raw '{"model":"gpt-3.5-turbo","temperature":1,"messages":[{"role":"user","content":"Hello 3.5!"}]}'
@@ -349,6 +350,6 @@ content-type: application/x-ndjson; charset=utf-8
 
 ## Wrapping up
 
-Elixir is joy to work with. Here it took less than 70 lines of code to write a OpenAI wrapper, map over the source streams, and stream it back to the client.
+Elixir is joy to work with. Here it took less than 70 lines of code to write an OpenAI wrapper, map over the source streams, and stream the transformed result back to the client.
 
 It's worth noting that community-maintained OpenAI clients exist for Elixir, but like with many things in this ecosystem, I find that the language itself often provides what I need without having to reach for third-party libraries.
