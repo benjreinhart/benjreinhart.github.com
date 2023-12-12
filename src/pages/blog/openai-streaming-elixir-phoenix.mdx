@@ -200,7 +200,7 @@ If we run our `chat_completion/2` function with a callback that prints its argum
 Before moving on, one thing we should do to make our code robust is to ensure its used correctly.
 We implemented two functions, `chat_completion/1` and `chat_completion/2`, the first does not support streaming while the second expects it.
 Rather than ask callers to remember this, let's remove the `stream` property from being a responsibility of the caller.
-We can add a function to ensure the request body's `stream` property is the expected value in all cases.
+We can add a function to ensure the request body's `stream` property is set to the expected value in all cases.
 
 ```diff
   def chat_completion(request) do
