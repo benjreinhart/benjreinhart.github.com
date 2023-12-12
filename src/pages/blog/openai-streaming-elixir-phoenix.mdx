@@ -179,9 +179,18 @@ The `decode/1` function will receive some empty strings as a result of the strin
 
 Lastly, we need to update `chat_completions/2` to make use of `parse/1`. Remove the line that invokes the callback and replace it with the following:
 
-```git
-- callback.(data)
-+ Enum.each(parse(data), callback)
+```diff
+ def chat_completion(request, callback) do
+   Req.post(@chat_completions_url,
+     json: set_stream(request, true),
+     auth: {:bearer, api_key()},
+     into: fn {:data, data}, acc ->
+-      callback.(data)
++      Enum.each(parse(data), callback)
+       {:cont, acc}
+     end
+   )
+ end
 ```
 
 If we run our `chat_completion/2` function with a callback that prints its argument, we'll see each chunk of the stream as an Elixir map!
