@@ -1,19 +1,11 @@
 ---
 import Link from './link.astro';
-
-interface Props {
-  showNavLinks: boolean;
-}
-
-const { showNavLinks } = Astro.props;
 ---
 <header class="flex items-center justify-between p-3" transition:persist>
-  {!showNavLinks && (
-    <nav class="flex items-center space-x-3 text-sm">
-      <Link href="/">Home</Link>
-      <Link href="/blog">Blog</Link>
-    </nav>
-  )}
+  <nav class="flex items-center space-x-3 md:text-sm">
+    <Link href="/">Home</Link>
+    <Link href="/blog">Blog</Link>
+  </nav>
 
   <div class="flex items-center justify-end space-x-1.5">
     <a href="https://linkedin.com/in/benjreinhart" aria-label="Visit LinkedIn" title="Visit LinkedIn" class="p-1.5 hover:bg-base-300 rounded">

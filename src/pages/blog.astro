@@ -13,12 +13,12 @@ const posts = await getCollection("posts", ({ data }) => {
       <div class="prose px-4 pb-6">
         <h2>My writings</h2>
       </div>
-      <ol class="space-y-2 sm:space-y-4">
+      <ol class="space-y-2 md:space-y-4">
         {
           posts.map((post) => {
             return (
               <li>
-                <a href={`/blog/${post.slug}`} class="p-4 block sm:rounded hover:bg-base-200/75">
+                <a href={`/blog/${post.slug}`} class="p-4 block md:rounded hover:bg-base-200/75">
                   <time
                       datetime={post.data.published.toISOString()}
                       class="text-base-content/50 text-sm"
