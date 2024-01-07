@@ -1,14 +1,10 @@
 ---
-layout: ../../layouts/Blog.astro
 title: Streaming OpenAI in Elixir Phoenix
 description: How I implemented streaming OpenAI chat completions from scratch using Elixir and Phoenix
 published: 2023-12-12T00:55:43.715Z
 ---
-import PostHeader from '../../components/PostHeader.astro'
 import Link from '../../components/link.astro';
 export const components = {a: Link}
-
-<PostHeader {...frontmatter} />
 
 At [Axflow](https://axflow.dev), we are building [open source tooling](https://github.com/axflow/axflow) to help developers integrate large language models into their products.
 The majority of this tooling has been written in TypeScript, though I've been exploring replacing part of our stack with a Phoenix application. I recently implemented
@@ -74,7 +70,7 @@ end
 
 We can open up a shell with `iex -S mix` to try it out:
 
-```iex
+```
 iex> {:ok, %{body: response}} = MyApp.Openai.chat_completion(%{ model: "gpt-3.5-turbo", messages: [%{role: "user", content: "Hello 3.5!"}] })
 iex> response
 %{

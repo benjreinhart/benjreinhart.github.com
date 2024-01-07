@@ -1,19 +1,15 @@
 ---
+import { humanTime } from "../lib/utils";
+
 interface Props {
   title: string;
-  published: string;
+  published: Date;
 }
 
 const { title, published } = Astro.props;
 
-const date = new Date(published);
-const dateISOString = date.toISOString();
-const dateHumanString = date.toLocaleString(undefined, {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-});
+const dateISOString = published.toISOString();
+const dateHumanString = humanTime(published);
 ---
 <header class="flex flex-col">
   <h1 class="order-2 mb-4">{title}</h1>

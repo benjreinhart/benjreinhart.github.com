@@ -1,3 +1,4 @@
+import defaultTheme from 'tailwindcss/defaultTheme';
 import Typography from '@tailwindcss/typography';
 import DaisyUIPlugin from 'daisyui';
 
@@ -8,7 +9,11 @@ export default {
     themes: ['light', 'dark'],
   },
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        mono: ['IBM Plex Mono', ...defaultTheme.fontFamily.mono],
+      },
+    },
   },
   plugins: [Typography, DaisyUIPlugin],
 };
