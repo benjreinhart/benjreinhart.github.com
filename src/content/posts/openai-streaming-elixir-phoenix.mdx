@@ -1,16 +1,21 @@
 ---
 title: Streaming OpenAI in Elixir Phoenix
 description: How I implemented streaming OpenAI chat completions from scratch using Elixir and Phoenix
-published: 2023-12-12T00:55:43.715Z
+published: 2023-01-05T00:55:43.715Z
 ---
 import Link from '../../components/link.astro';
 export const components = {a: Link}
 
 At [Axflow](https://axflow.dev), we are building [open source tooling](https://github.com/axflow/axflow) to help developers integrate large language models into their products.
-The majority of this tooling has been written in TypeScript, though I've been exploring replacing part of our stack with a Phoenix application. I recently implemented
-the component that streams OpenAI assistant responses back to our client.
+The majority of this tooling thus far has been written in TypeScript, though we've been exploring replacing part of our stack with a Phoenix application.
 
-This post walks through the basics of calling OpenAI and streaming the response. If you follow along you'll need a Phoenix application and an OpenAI API key.
+This post is the first in a series of posts about integrating with OpenAI's chat completions endpoint.
+
+1. Part I (this post) implements a module for streaming chat completions and a Phoenix API endpoint to stream the completions to clients.
+2. Part II goes deeper on stream parsing and introduces state for more robust handling of HTTP streams.
+3. Part III uses Phoenix LiveView to stream completions to users connected to your site.
+
+If you follow along you'll need a Phoenix application and an OpenAI API key.
 
 ## Calling OpenAI without streaming
 
