@@ -1,7 +1,7 @@
 ---
 title: Streaming OpenAI in Elixir Phoenix
 description: How I implemented streaming OpenAI chat completions from scratch using Elixir and Phoenix
-published: 2024-01-05T12:00:00.000Z
+published: 2024-01-07T12:00:00.000Z
 ---
 import Link from '../../components/link.astro';
 export const components = {a: Link}
@@ -13,14 +13,8 @@ time working with OpenAI and given LLMs are all the rage, I wanted to write abou
 This post is the first in a series of posts about integrating with OpenAI's chat completions endpoint.
 
 1. Part I (this post) implements a module for streaming chat completions and a Phoenix API endpoint to stream the completions to clients.
-2. Part II goes deeper on stream parsing and introduces state for more robust handling of HTTP streams.
+2. [Part II](/blog/openai-streaming-elixir-phoenix-part-2) goes deeper on stream parsing and introduces state for more robust handling of HTTP streams.
 3. Part III uses Phoenix LiveView to stream completions to users connected to your site.
-
-## What are we trying to learn?
-
-This purpose of this post is to walk through implementing a module that can stream OpenAI chat completions. While we can use a third-party library,
-we'll write this from scratch to learn how to parse streaming events over HTTP. We'll also learn how we can map over this stream and transform it
-before sending it off to our own clients.
 
 ## Environment
 
@@ -363,4 +357,4 @@ Elixir is joy to work with. Here it took less than 70 lines of code to write an 
 
 It's worth noting that community-maintained OpenAI clients exist for Elixir, but like with many things in this ecosystem, I find that the language itself often provides what I need without having to reach for third-party libraries.
 
-In the next post in this series, we'll dive deeper into parsing.
+In the [next post](/blog/openai-streaming-elixir-phoenix-part-2), we'll dive deeper into parsing.

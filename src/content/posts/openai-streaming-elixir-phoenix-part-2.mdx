@@ -1,0 +1,63 @@
+---
+title: Streaming OpenAI in Elixir Phoenix Part II
+description: Making our parser robust to HTTP buffering
+published: 2024-01-08T12:00:00.000Z
+---
+
+import Link from '../../components/link.astro';
+export const components = {a: Link}
+
+This is part II in a series about streaming OpenAI chat completions in Elixir.
+
+1. In [part I](/blog/openai-streaming-elixir-phoenix), we implement a module and API endpoint for streaming chat completions.
+2. Part II (this post) revisits stream parsing and why you may want stateful parsing.
+3. Part III uses Phoenix LiveView to stream completions to users connected to your site.
+
+## Revisiting the parser
+
+In the previous post, we implemented streaming event parsing using the following code:
+
+```elixir
+defp parse(chunk) do
+  chunk
+  |> String.split("data: ")
+  |> Enum.map(&String.trim/1)
+  |> Enum.map(&decode/1)
+  |> Enum.reject(&is_nil/1)
+end
+
+defp decode(""), do: nil
+defp decode("[DONE]"), do: nil
+defp decode(data), do: Jason.decode!(data)
+```
+
+The input to `parse/1` was assumed to be zero or more *complete* events, e.g.:
+
+```
+data: {"id":"chatcmpl-8eqSTjwUmipuvL2s8CzjmXd1dTS08","object":"chat.completion.chunk","created":1704745461,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"content":"Hello"},"logprobs":null,"finish_reason":null}]}
+
+data: {"id":"chatcmpl-8eqSTjwUmipuvL2s8CzjmXd1dTS08","object":"chat.completion.chunk","created":1704745461,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"content":"!"},"logprobs":null,"finish_reason":null}]}
+
+
+```
+
+However, what if we were to receive a partial event? That is, what if the bytes that comprise one or more of the events in the stream arrive at different times? For example, let's take the first event from above and say it arrived in stages.
+
+Stage 1:
+
+```
+data: {"id":"chatcmpl-8eqSTjwUmipuvL2s8CzjmXd1dTS08","object":"chat.completion.chunk","created":1704745
+```
+
+Stage 2:
+
+```
+461,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"content":"Hello"},"logprobs":null,"finish_reason":null}]}
+
+
+```
+
+If this were to happen, the parser would fail to extract the events correctly as it currently assumes the entire event is present when the call to `parse/1` is made.
+
+## HTTP buffering
+
