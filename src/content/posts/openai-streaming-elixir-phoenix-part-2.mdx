@@ -81,7 +81,7 @@ If we want a robust implementation that can withstand this scenario, we'll need 
 
 Before introducing state, let's rework the parser to remove the assumption that an entire event is present at once.
 
-Among the __greatest joys__ of working with Elixir is iterating over binaries (strings) and using pattern matching to extract or otherwise modify the input in some way.
+Among the greatest joys of working with Elixir is iterating over binaries (strings) and using pattern matching to extract or otherwise modify the input in some way.
 Whether or not we need to optimize our parser around the above scenario, reworking it in this way will be a fun exercise!
 
 Let's reimplement the parser to take a `buffer` argument and iterate over the binary using pattern matching and recursion. We'll add two new functions, `parse/2` and `parse/3`.
@@ -99,7 +99,7 @@ end
 `parse/2` will be the public interface for callers, while `parse/3` will implement the parsing logic. The arguments are:
 
 * `buffer` -- This will hold the intermediate contents of a single event while we iterate over a given `chunk`. Later, when we introduce state,
-this buffer will persist between chunks that arrive separately in the stream (if they're incomplete).
+this buffer will persist between chunks that arrive separately in the stream.
 * `chunk` -- This is a single chunk of data received from the stream of all chunks, which may contain zero or more complete or incomplete events.
 * `events` -- A single `chunk` may contain more than one event, so we'll keep a list of the events we've parsed and return them when parsing is complete.
 
@@ -123,12 +123,12 @@ defp parse(buffer, "", events) do
 end
 ```
 
-This is a lot of functionality in only a few lines of code, so let's unpack it. At a high-level:
+That's a lot of functionality in only a few lines of code, so let's unpack it. At a high-level:
 
 * The first clause matches when we have two consecutive newlines present, which is the event separator. In this case, we either add the (JSON-decoded) event to the list of events and continue or skip it if it signals the end of the stream.
 * The second clause matches when the chunk is non-empty (but is also not the event separator). In this case, we extract the first utf8 character, add it to our buffer, and continue parsing the rest of the chunk.
 * The third clause matches when there are no more bytes left in the chunk to parse. In this case, we return a tuple consisting of the `buffer` and the (reversed) list of `events`.
-We reverse the events because we prepended them to the list during parsing as to not waste memory due to Elixir's immutable data structures (adding an item to the head of a list is constant time and memory).
+We reverse the events because we prepended them to the list during parsing as to not waste memory due to Elixir's immutable data structures (adding an item to the head of a list is constant in time and memory).
 
 Pattern matching is used extensively here, not only in the function heads but also in a `case` statement. We destructure binaries in multiple places using declarative syntax. Modifiers like `::utf8` are used to ensure
 that we don't naively destructure a subset of a single character but entire characters at a time (since utf8 is variable-width). For more on this, I recommend the [Elixir guides](https://hexdocs.pm/elixir/binaries-strings-and-charlists.html)
@@ -277,9 +277,9 @@ This is where we'll need to keep state--between calls to `parse/2`.
 
 Admittedly, this is where Elixir can feel more difficult than a language like TypeScript, Go, etc. Since Elixir's data is immutable, we cannot simply update a variable or modify an existing data structure.
 To solve for this, Elixir--more accurately, the underlying virtual machine--has a notion of processes, and [processes are stateful](https://hexdocs.pm/elixir/processes.html#state). While this feels like friction at first, processes are really useful in ways
-beyond state and thus we often get other benefits when leveraging them (e.g., concurrency, fault tolerance).
+beyond state and thus we often gain other benefits when leveraging them (e.g., concurrency, fault tolerance).
 
-Thankfully, we do not have to deal with most of the mechanics of processes because Elixir provides a built-in abstraction around state called [Agents](https://hexdocs.pm/elixir/1.16.0/Agent.html). Let's update `chat_completion/2` to use an agent.
+Thankfully, we do not have to deal with most of the mechanics of processes because Elixir provides a built-in abstraction around state called [agents](https://hexdocs.pm/elixir/1.16.0/Agent.html). Let's update `chat_completion/2` to use an agent.
 
 ```elixir
 def chat_completion(request, callback) do
@@ -311,7 +311,7 @@ def chat_completion(request, callback) do
 end
 ```
 
-Here we use an agent to keep track of the buffer state between the arrival of streaming chunks. With that, our parser is now stateful and can handle chunks containing incomplete events.
+The agent preserves the buffer between the arrival of different chunks. With that, our parser is now stateful and can handle chunks containing incomplete events.
 
 ### A final assumption
 
