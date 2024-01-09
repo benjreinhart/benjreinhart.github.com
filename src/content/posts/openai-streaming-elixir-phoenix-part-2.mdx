@@ -313,14 +313,6 @@ end
 
 The agent preserves the buffer between the arrival of different chunks. With that, our parser is now stateful and can handle chunks containing incomplete events.
 
-### A final assumption
-
-While this improves upon the previous implementation, there is still likely one gotchya here. In our parsing logic, we treat utf8 characters as the "atomic" unit.
-However, utf8 is variable-width and a single character could be comprised of multiple bytes. If a streaming chunk arrived where the last character was incomplete, e.g., containing two of the four bytes,
-then our parser would fail pattern matching.
-
-Accounting for this case is an exercise for the reader 🙂
-
 ## Conclusion
 
 Parsing binaries in Elixir is some of my favorite code to write (I wrote a [parser for the KDL language](https://github.com/benjreinhart/ex_kdl) largely for this reason).
