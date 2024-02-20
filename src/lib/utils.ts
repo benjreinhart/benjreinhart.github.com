@@ -6,3 +6,9 @@ export function humanTime(date: Date) {
     day: 'numeric',
   });
 }
+
+export function sortByPublished<T extends { data: { published: Date } }>(collection: T[]) {
+  return collection.toSorted((a, b) => {
+    return Number(b.data.published) - Number(a.data.published);
+  });
+}

@@ -11,7 +11,7 @@ This is part II in a series about streaming OpenAI chat completions in Elixir.
 
 1. In [part I](/blog/openai-streaming-elixir-phoenix), we implement a module and API endpoint for streaming chat completions.
 2. Part II (this post) revisits stream parsing and why you may want stateful parsing.
-3. Part III (coming soon) uses Phoenix LiveView to stream completions to users connected to your site.
+3. [Part III](/blog/openai-streaming-elixir-phoenix-part-3) uses Phoenix LiveView to stream completions to users connected to your site.
 
 ## You may not need this
 
@@ -318,4 +318,4 @@ The agent preserves the buffer between the arrival of different chunks. With tha
 Parsing binaries in Elixir is some of my favorite code to write (I wrote a [parser for the KDL language](https://github.com/benjreinhart/ex_kdl) largely for this reason).
 Perhaps that's because of all the times I've had to do it without the luxury of pattern matching and the bit syntax.
 
-The final part in this series will take our streaming chat completions and render them in a UI using [LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) (coming soon!).
+The [final part](/blog/openai-streaming-elixir-phoenix-part-3) in this series takes our streaming chat completions and renders them in a UI using [LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html).

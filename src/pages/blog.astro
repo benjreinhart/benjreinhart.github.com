@@ -1,29 +1,29 @@
 ---
-import Layout from "../layouts/Home.astro";
-import { getCollection } from "astro:content";
-import { humanTime } from "../lib/utils";
-const posts = await getCollection("posts", ({ data }) => {
+import Layout from '../layouts/Home.astro';
+import { getCollection } from 'astro:content';
+import { humanTime, sortByPublished } from '../lib/utils';
+const posts = await getCollection('posts', ({ data }) => {
   return data.published;
 });
 ---
 
 <Layout title="Blog">
-	<main class="py-12 flex justify-center">
-		<div class="text-lg lg:text-base max-w-xl">
+  <main class="py-12 flex justify-center">
+    <div class="text-lg lg:text-base max-w-xl">
       <div class="prose px-4 pb-6">
         <h2>My writings</h2>
       </div>
       <ol class="space-y-2 md:space-y-4">
         {
-          posts.map((post) => {
+          sortByPublished(posts).map((post) => {
             return (
               <li>
                 <a href={`/blog/${post.slug}`} class="p-4 block md:rounded hover:bg-base-200/75">
                   <time
-                      datetime={post.data.published.toISOString()}
-                      class="text-base-content/60 text-sm"
-                    >
-                      {humanTime(post.data.published)}
+                    datetime={post.data.published.toISOString()}
+                    class="text-base-content/60 text-sm"
+                  >
+                    {humanTime(post.data.published)}
                   </time>
                   <div class="prose">
                     <h3 class="text-xl pt-1 pb-2">{post.data.title}</h3>
@@ -31,7 +31,7 @@ const posts = await getCollection("posts", ({ data }) => {
                   <p class="text-base-content/70">{post.data.description}</p>
                 </a>
               </li>
-            )
+            );
           })
         }
       </ol>
