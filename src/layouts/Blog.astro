@@ -1,8 +1,8 @@
 ---
 import '@fontsource/ibm-plex-mono';
-import "../styles/base.css";
-import Header from "../components/header.astro";
-import { ViewTransitions } from "astro:transitions";
+import '../styles/base.css';
+import Header from '../components/header.astro';
+import { ViewTransitions } from 'astro:transitions';
 
 const { frontmatter } = Astro.props;
 const url = Astro.url.toString();
@@ -10,41 +10,49 @@ const url = Astro.url.toString();
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
+  <head>
+    <meta charset="UTF-8" />
 
-		<meta http-equiv="X-UA-Compatible" content="IE=edge">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta name="apple-mobile-web-app-capable" content="yes">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
 
-		<meta name="description" content={frontmatter.title}>
-		<meta name="author" content="Ben Reinhart">
-		<meta name="keywords" content="ben reinhart, website, blog, software, founder, software developer">
+    <meta name="description" content={frontmatter.title} />
+    <meta name="author" content="Ben Reinhart" />
+    <meta
+      name="keywords"
+      content="ben reinhart, website, blog, software, founder, software developer"
+    />
 
-		<meta property="og:type" content="article" />
-		<meta property="og:locale" content="en_US" />
-		<meta property="og:title" content={frontmatter.title} />
-		<meta property="og:description" content={frontmatter.description} />
-		<meta property="og:url" content={url} />
-		<meta property="og:article:published_time" content={frontmatter.published} />
+    <meta property="og:type" content="article" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content={frontmatter.title} />
+    <meta property="og:description" content={frontmatter.description} />
+    {frontmatter.og_image && <meta property="og:image" content={`/og/${frontmatter.og_image}`} />}
+    <meta property="og:url" content={url} />
+    <meta property="og:article:published_time" content={frontmatter.published} />
 
-		<script defer data-domain="benreinhart.com" src="https://plausible.io/js/script.js"></script>
+    <script defer data-domain="benreinhart.com" src="https://plausible.io/js/script.js"></script>
 
-		<script>
-			const theme = localStorage.getItem('theme');
-			if (theme) { document.documentElement.dataset.theme = theme; }
-		</script>
+    <script>
+      const theme = localStorage.getItem('theme');
+      if (theme) {
+        document.documentElement.dataset.theme = theme;
+      }
+    </script>
 
-		<title>{frontmatter.title}</title>
+    <title>{frontmatter.title}</title>
 
-		<ViewTransitions />
-	</head>
-	<body>
+    <ViewTransitions />
+  </head>
+  <body>
     <Header />
     <main class="md:flex md:justify-center pt-10 pb-40">
-			<article class="prose prose-code:before:content-none prose-code:after:content-none prose-code:px-0.5 px-4 lg:px-0 break-word">
-				<slot />
-			</article>
+      <article
+        class="prose prose-code:before:content-none prose-code:after:content-none prose-code:px-0.5 px-4 lg:px-0 break-word"
+      >
+        <slot />
+      </article>
     </main>
-	</body>
+  </body>
 </html>
