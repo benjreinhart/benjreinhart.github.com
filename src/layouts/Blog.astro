@@ -6,6 +6,8 @@ import { ViewTransitions } from 'astro:transitions';
 
 const { frontmatter } = Astro.props;
 const url = Astro.url.toString();
+const ogImageUrl =
+  frontmatter.og_image_path && new URL(frontmatter.og_image_path, Astro.url.origin).toString();
 ---
 
 <!doctype html>
@@ -28,7 +30,7 @@ const url = Astro.url.toString();
     <meta property="og:locale" content="en_US" />
     <meta property="og:title" content={frontmatter.title} />
     <meta property="og:description" content={frontmatter.description} />
-    {frontmatter.og_image && <meta property="og:image" content={`/og/${frontmatter.og_image}`} />}
+    {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
     <meta property="og:url" content={url} />
     <meta property="og:article:published_time" content={frontmatter.published} />
 
