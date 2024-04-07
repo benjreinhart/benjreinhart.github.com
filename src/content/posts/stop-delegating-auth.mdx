@@ -1,0 +1,91 @@
+---
+title: Stop delegating auth
+description: Rolling your own is good actually
+published: 2024-04-05T12:00:00.000Z
+---
+
+import Link from '../../components/link.astro';
+export const components = {a: Link}
+
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+{/* https://twitter.com/jessfraz/status/1749977732434559468 */}
+{/* https://x.com/jessfraz/status/1749986328929026481?s=20 */}
+{/* https://twitter.com/abhishekaarav10/status/1775518443170590841?s=12 */}
+
+I'm increasingly seeing people recommend auth as something that should be delegated to third-party products like Auth0, Clerk, Supabase Auth, Stytch, etc.
+An especially prevalent argument when the team does not have prior experience maintaining an auth system. While these products have their place,
+I don't think people should blindly delegate such a critical part of their application to others.
+
+For many types of auth, these products are both unnecessary and costly. You don't have to be an expert in order to secure your application. Assuming you're using a mature web framework,
+there should be at least a few open source libraries that do most of the heavy lifting anyways. [Some web frameworks](https://hexdocs.pm/phoenix/mix_phx_gen_auth.html)
+even ship with a vetted, built-in auth system.
+
+TLDR: "rolling your own" auth is good actually!
+
+## Why you're told to delegate auth
+
+* **Security** &mdash; You don't know what you're doing. Auth is hard and mistakes can be extremely damaging to both you and your users. Delegate this responsibility to experts whose job is to solve it for you.
+* **Shipping speed** &mdash; Why waste time learning the nitty-gritty of auth? This is solved and spending time on it won't advance features your users care about.
+* **Additional features** &mdash; Admin management GUIs or email templates for things like magic links, signup confirmations, password reset, etc.
+
+## Why you shouldn't
+
+* **Ownership** &mdash; You own your users table, access patterns, and any additional logic. With full control over your auth system, you can sculpt it to precisely fit your needs.
+* **Simplicity** &mdash; A simpler system is one with fewer moving parts, but these products fragment your data and further distribute your system across more servers you don't own. And it's not just prod, your dev and test environments will be more complex too.
+* **Security** &mdash; This isn't always true, but in some instances you may be forced into a design you would not have otherwise used, e.g., JWTs in local storage over signed, HTTP-only cookies. Generally, the more moving parts and points of integration the greater the attack surface.
+* **Shipping speed** &mdash; You can move faster with a system designed for your needs only. Auth products support many different use cases and usage patterns, a generalization which can often be awkward or too heavy for your needs. Worse, it can complicate features that would otherwise be straightforward to implement.
+* **Performance** &mdash; Distributing your system will result in more network calls and thus more latency. A (monolith) app that owns its users table calls only the database. If your web app and database are in the same datacenter, this may only be a few milliseconds. With an auth product, you'll need to call their service which will in turn call its database. If that service is outside your datacenter, it'll be noticably slower.
+
+**As a bonus**
+
+* You'll have fewer SaaS subscriptions and bills to pay each month.
+* For open source web apps, requiring fewer SaaS accounts lowers the barrier for both users and contributors.
+* Distributing your app for things like on-prem deployments is probably simpler.
+
+## The second-order effects are costly
+
+Auth products can't survive on code alone, they need to store your data otherwise there wouldn't be much they can do that an open source library can't.
+If they own the user data, they can fully encapsulate the authentication flows behind their service and provide additional features. This is what differentiates them from an open source project and justifies the cost.
+
+But the bill isn't the problem. **Delegating ownership of the users table is the problem**. If your users table lives in someone else's database, your application is now a distributed system. One that's not fully in your control.
+An immediate consequence of this is that you will have to reinvent joins and transactions involving the users table in your application layer. You will have limited ability to evolve the users table alongside the application.
+This can negatively impact the simplicty and performance of your app as well as team velocity.
+
+For example, my app has a view that renders all members of an organization, displaying membership status and the user avatar, email, and name. It's simple and efficient to query the memberships table with a join on the users table and return both objects in one query.
+If our users table was stored in some other system, this becomes two queries to two different databases with some extra application code for error handling and joining.
+
+There will be many instances of this pattern for any app. It's going to pollute your code base and degrade app performance. These features aren't even related to authentication, so you're paying a cost when developing unrelated features!
+
+## You don't really own the users table with Supabase
+
+Supabase claims you own the users table when using their auth product.
+I don't mean to pick on Supabase here (they're a great company and we still use them for Postgres!), but after using their auth product recently I don't agree.
+
+1. You have to use their Postgres service for your primary database in order for it to be true that everything is stored in your database. If you're not using postgres, or using a different provider, then this is obviously not true. If you need to migrate off them later for whatever reason, it'll probably end up being a huge pain.
+2. The table lives in a different schema, `auth.users`, and the [client libraries don't expose it](https://supabase.com/docs/guides/auth/managing-user-data). If you want to query data from the users table like email or OAuth properties like avatar or username, then they recommend [duplicating this data to another table via triggers](https://supabase.com/docs/guides/auth/managing-user-data#using-triggers). As a result, some queries were split into two parts using two different clients and sets of credentials.
+3. You can't modify the users table because it could break their assumptions. So you won't be adding, removing, or changing any columns on it.
+
+Since we were using Supabase for Postgres, the data was technically in our database, but it certainly didn't feel like we owned it. These constraints influenced our access patterns and schema design. I wouldn't normally use triggers to duplicate a subset of the columns to a different table for the sake of not querying the original table.
+
+## What you should do instead
+
+{/* Please stop making me create an account for your app, particularly one requiring a password. */}
+
+{/* There is a way to delegate auth without the problems above: OAuth providers. For anything work related, I want to sign in with my work email. Please don't make me create a password for your service. */}
+
+{/* Use oauth.
+
+If not oauth, use magic links
+
+Password or other means as last resort. */}
+
+## When an auth product makes sense
+
+If you're team is uncomfortable with security and authentication, then maybe you should use a product. Keep in mind that you still need to correctly integrate and use it. 
+Also keep in mind the developers who work on those products are human and not immune to [shipping vulnerable code](https://clerk.com/changelog/2024-02-02) themselves.
+
+Perhaps you have some end-to-end encryption requirements for sensitive user data. Unless you're an expert here, you may want to delegate this to someone else.
+[Privy](https://www.privy.io), for example, enables seamless authentication and non-custodial wallets for web3 apps, which is significantly more involved than basic authentication.
+
+If you have complex enterprise requirements or have some other non-standard authentication and there's a mature product that solves it, then you should probably use it.

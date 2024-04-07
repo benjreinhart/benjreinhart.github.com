@@ -2,25 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-#icon-sun { display: block; }
-#icon-moon { display: none; }
-
-.social-icon path { fill: black }
-
-@media (prefers-color-scheme: dark) {
-  #icon-sun { display: none; }
-  #icon-moon { display: block; }
-  .social-icon path { fill: white }
+#icon-sun {
+  display: block;
+}
+#icon-moon {
+  display: none;
 }
 
-html[data-theme="light"] #icon-sun { display: block; }
-html[data-theme="light"] #icon-moon { display: none; }
-html[data-theme="light"] .social-icon path { fill: black }
+.social-icon path {
+  fill: black;
+}
 
-html[data-theme="dark"] #icon-sun { display: none; }
-html[data-theme="dark"] #icon-moon { display: block; }
-html[data-theme="dark"] .social-icon path { fill: white }
+@media (prefers-color-scheme: dark) {
+  #icon-sun {
+    display: none;
+  }
+  #icon-moon {
+    display: block;
+  }
+  .social-icon path {
+    fill: white;
+  }
+}
+
+html[data-theme='light'] #icon-sun {
+  display: block;
+}
+html[data-theme='light'] #icon-moon {
+  display: none;
+}
+html[data-theme='light'] .social-icon path {
+  fill: black;
+}
+
+html[data-theme='dark'] #icon-sun {
+  display: none;
+}
+html[data-theme='dark'] #icon-moon {
+  display: block;
+}
+html[data-theme='dark'] .social-icon path {
+  fill: white;
+}
 
 article p {
   overflow-wrap: break-word;
+}
+
+.twitter-tweet iframe {
+  color-scheme: light;
 }
