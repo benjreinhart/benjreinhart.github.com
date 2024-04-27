@@ -1,0 +1,385 @@
+---
+title: Verifying Slack Requests in Phoenix
+description: Hardening your Slack app with request signature verification
+published: 2024-04-15T12:00:00.000Z
+og_image_path: /og/slack-verification.png
+---
+
+import Link from '../../components/link.astro';
+export const components = {a: Link}
+
+Remember the [chat bot hype circa 2016](https://www.wired.com/story/microsoft-build-bots-ai-cortana-keynote-conference/)?
+Well, seeing as we have the ability to implement chat with far greater capabilities at our disposal, I couldn't help but create my own Slack bot powered by LLMs.
+At the moment, it doesn't do a whole lot, but it is available to shoot the shit in our Slack rooms, summarize discussions, assign tasks, etc.
+
+But, this post isn't about the chat bot. Perhaps a low bar, I'm easily nerd sniped by the types of things involved with setting up the chat bot, e.g., integrating with Slack,
+handling their overwhelming-amount-of events, background processing, and [verifiying the authenticity of requests](https://api.slack.com/authentication/verifying-requests-from-slack)&mdash;the latter of which is especially fun as it involves cryptography.
+
+This post is about verifying the authenticity of requests from [Slack's Events API](https://api.slack.com/apis/connections/events-api).
+
+## Background
+
+If you're following along, I'm assuming you have a Phoenix application, a [Slack app](https://api.slack.com/start/apps), and your Slack app is configured to receive events from [Slack's Events API](https://api.slack.com/apis/connections/events-api).
+For that, you need the correct OAuth scopes, a live application hosted somewhere Slack can send events to, and your application installed in a Slack workspace.
+
+I deployed on [Fly.io](https://fly.io) since it takes one minute to do so and they give me a public url.
+
+### Initial route and controller
+
+I have a route `/api/slack` which is where Slack will send events from the Events API.
+
+```elixir
+# lib/slack_bot_web/router.ex
+scope "/api", SlackBotWeb do
+  post "/slack", SlackController, :index
+end
+```
+
+```elixir
+# lib/slack_bot_web/controllers/slack_controller.ex
+defmodule SlackBotWeb.SlackController do
+  use SlackBotWeb, :controller
+
+  require Logger
+
+  def index(conn, %{"type" => "event_callback", "event" => event}) do
+    SlackBot.Events.process(event) # irrelevant for this post
+    ok(conn)
+  end
+
+  def index(conn, %{"type" => "url_verification", "challenge" => challenge}) do
+    text(conn, challenge)
+  end
+
+  def index(conn, params) do
+    Logger.warning("Unhandled request from Slack: " <> Jason.encode!(params))
+    ok(conn)
+  end
+
+  defp ok(conn) do
+    send_resp(conn, 200, "")
+  end
+end
+```
+
+The controller currently handles two types of events (ignoring all others):
+
+* `event_callback` &mdash; This is the type for pretty much all events I care about, e.g., new message in public or private channels, user joins channel, DM message deleted, etc.
+* `url_verification` &mdash; The event Slack uses to [verify your URL with the Events API](https://api.slack.com/events/url_verification).
+
+## Request verification
+
+At this point, the controller is not verifying or otherwise authenticating requests. Anyone could send an event impersonating Slack and the controller would happily process it.
+Instead, we should verify the authenticity of each request before accepting it.
+
+Here's a brief overview of how request verification works:
+
+* Slack issues a "signing secret," a value known **only** to you and Slack.
+* Slack will compute a signature for each request using the signing secret. Slack will include this signature in a request header called `x-slack-signature`.
+* You will also compute a signature using the signing secret for each request received.
+* You will compare the signature you computed with the one they included in their request. If the two signatures match, the request is authentic. Assuming no one else has access to the signing secret, it could only have come from Slack.
+
+Slack includes a timestamp as part of the request (in the `x-slack-request-timestamp` header) and in the signature computation. In addition to verifying the signatures match, you should verify that the timestamp is "recent" to prevent [replay attacks](https://en.wikipedia.org/wiki/Replay_attack).
+
+### Implementing request verification
+
+The core algorithm is implemented in `valid_request_signature?/3`:
+
+```elixir
+defmodule SlackBot.Slack do
+  alias SlackBot.Crypto
+
+  def valid_request_signature?(signature, raw_body, timestamp)
+      when is_binary(signature) and is_binary(raw_body) and is_binary(timestamp) do
+    signed =
+      signing_secret()
+      |> Crypto.hmac_sha256("v0:#{timestamp}:#{raw_body}")
+
+    Crypto.secure_compare("v0=#{signed}", signature)
+  end
+
+  defp signing_secret() do
+    Application.get_env(:slack_bot, :slack)[:signing_secret]
+  end
+end
+```
+
+This function takes three arguments:
+
+1. `signature` - This is the signature slack included in the `x-slack-signature` request header, which contains the signature they computed over the request.
+2. `raw_body` - The unmodified request body. We will need to tweak Phoenix's middleware in order to preserve the unmodified request body. This is discussed below in [Preserving the unmodified request body](#preserving-the-unmodified-request-body).
+3. `timestamp` - This is the timestamp slack included in the `x-slack-request-timestamp` request header and used as part of the signature computation.
+
+[Slack's documentation](https://api.slack.com/authentication/verifying-requests-from-slack) discusses this proces in detail but, in short, we use the signing secret to
+compute the HMAC SHA256 signature over the necessary values. We securely compare that signature with the one Slack sent in the request header.
+If they're the same, the function returns `true` otherwise `false`.
+
+This code relies on the following module that implements some cryptography operations:
+
+```elixir
+defmodule SlackBot.Crypto do
+  def hmac_sha256(secret, data) when is_binary(secret) and is_binary(data) do
+    :crypto.mac(:hmac, :sha256, secret, data) |> Base.encode16(case: :lower)
+  end
+
+  def secure_compare(left, right) when is_binary(left) and is_binary(right) do
+    byte_size(left) == byte_size(right) and :crypto.hash_equals(left, right)
+  end
+end
+```
+
+`hmac_sha256/2` computes a signature using HMAC SHA256 and then returns a base16-encoded string (the encoding used by Slack).
+
+`secure_compare/2` performs constant-time comparison to help prevent [timing attacks](https://en.wikipedia.org/wiki/Timing_attack).
+
+Given the sensitivity of this code, we validate the arguments are the expected types.
+
+## Preserving the unmodified request body
+
+Phoenix uses [`Plug.Conn.read_body/2`](https://hexdocs.pm/plug/Plug.Conn.html#read_body/2) to read the request body from the socket.
+Once the body is read, it cannot be re-read. Phoenix does not preserve the unmodified body, so we must
+override its default behavior and do so explicitly.
+
+Plug [documents a custom body reader](https://hexdocs.pm/plug/Plug.Parsers.html#module-custom-body-reader) for this purpose,
+though we alter the code to run only for the routes that need it (routes starting with `/api/slack`).
+We can add this custom body reader within the existing `lib/slack_bot_web/endpoint.ex` file:
+
+```elixir
+defmodule RawBodyReader do
+  def read_body(conn, opts) do
+    case conn.path_info do
+      ["api", "slack" | _] ->
+        # We need the original unmodified request body for signature verification,
+        # explicitly store it on the conn for later use. Signature verification is
+        # how we know that the event is legitimately sent from Slack.
+        {:ok, body, conn} = Plug.Conn.read_body(conn, opts)
+        conn = update_in(conn.assigns[:raw_body], &[body | &1 || []])
+        {:ok, body, conn}
+
+      _ ->
+        # If this isn't a request that requires signature verification, delegate to the default reader.
+        # This way, we don't consume extra memory by storing the original unmodified body in the conn state.
+        Plug.Conn.read_body(conn, opts)
+    end
+  end
+end
+```
+
+Also in `lib/slack_bot_web/endpoint.ex`, update the `Plug.Parsers` configuration to use our custom body reader:
+
+```diff
+   plug Plug.Parsers,
+     parsers: [:urlencoded, :multipart, :json],
+     pass: ["*/*"],
++    body_reader: {RawBodyReader, :read_body, []},
+     json_decoder: Phoenix.json_library()
+```
+
+Now the `conn` passed to our Slack controller actions will have a `raw_body` assign that we can use to access the unmodified request body.
+
+## Verifying requests
+
+When a request comes into `slack_controller.ex`, we need to do three things:
+
+1. Assign the required `x-slack-request-timestamp` and `x-slack-signature` headers.
+2. Verify the timestamp is within some reasonable range of what the server considers the current time to prevent replay attacks.
+3. Verify the request signature.
+
+I used custom plugs that run before our controller action for this purpose. They are configured at the top of the controller:
+
+```elixir
+plug :assign_request_headers
+plug :verify_request_timestamp
+plug :verify_request_signature
+```
+
+### Assigning request headers
+
+This plug will pluck out the `x-slack-request-timestamp` and `x-slack-signature` headers and put them into `conn.assigns`.
+If any are missing, it will respond with an error.
+
+```elixir
+defp assign_request_headers(conn, _opts) do
+  timestamp =
+    conn
+    |> get_req_header("x-slack-request-timestamp")
+    |> List.first()
+
+  signature =
+    conn
+    |> get_req_header("x-slack-signature")
+    |> List.first()
+
+  if is_nil(timestamp) or is_nil(signature) do
+    Logger.warning("Invalid request signature: missing slack headers")
+    invalid_request_signature(conn)
+  else
+    conn
+    |> assign(:timestamp, timestamp)
+    |> assign(:signature, signature)
+  end
+end
+```
+
+### Verify request timestamp
+
+This plug will ensure that the timestamp from the request is within 5 minutes of the server's current time. This is the same range used in the Slack's documentation.
+
+```elixir
+@five_minutes_in_seconds :timer.minutes(5) / 1000
+
+defp verify_request_timestamp(conn, _opts) do
+  now = :os.system_time(:seconds)
+  timestamp = String.to_integer(conn.assigns.timestamp)
+
+  # Protect against replay attacks by ensuring the server time
+  # is within a 5 minute window of when Slack sent the request
+  if abs(now - timestamp) < @five_minutes_in_seconds do
+    conn
+  else
+    Logger.warning("Invalid request signature: timestamp not within acceptable window")
+    invalid_request_signature(conn)
+  end
+end
+```
+
+### Verify request signature
+
+If the first two plugs succeeded, we'll verify the request signature using the `valid_request_signature?/3` function we defined above.
+
+Note that the `raw_body` is stored as [`iodata`](https://hexdocs.pm/elixir/IO.html#module-io-data) (`iolist` specifically), so we need to convert it to a binary first using `IO.iodata_to_binary/1`.
+
+```elixir
+defp verify_request_signature(conn, _opts) do
+  %{raw_body: raw_body, timestamp: timestamp, signature: signature} = conn.assigns
+
+  raw_body = IO.iodata_to_binary(raw_body)
+
+  if Slack.valid_request_signature?(signature, raw_body, timestamp) do
+    conn
+  else
+    Logger.warning("Invalid request signature: signature invalid")
+    invalid_request_signature(conn)
+  end
+end
+```
+
+#### Invalid request signatures
+
+All of the plugs above make use of the following helper for sending an error response:
+
+```elixir
+defp invalid_request_signature(conn) do
+  conn
+  |> put_status(:bad_request)
+  |> json(%{error: "Invalid request signature"})
+  |> halt()
+end
+```
+
+## Putting it all together
+
+That's a lot of pieces, so here is the entire controller.
+
+```elixir
+defmodule SlackBotWeb.SlackController do
+  use SlackBotWeb, :controller
+
+  require Logger
+
+  alias SlackBot.Slack
+
+  @five_minutes_in_seconds :timer.minutes(5) / 1000
+
+  plug :assign_request_headers
+  plug :verify_request_timestamp
+  plug :verify_request_signature
+
+  def index(conn, %{"type" => "event_callback", "event" => event}) do
+    SlackBot.Events.process(event) # irrelevant for this post
+    ok(conn)
+  end
+
+  def index(conn, %{"type" => "url_verification", "challenge" => challenge}) do
+    text(conn, challenge)
+  end
+
+  def index(conn, params) do
+    Logger.warning("Unhandled request from Slack: " <> Jason.encode!(params))
+    ok(conn)
+  end
+
+  defp ok(conn) do
+    send_resp(conn, 200, "")
+  end
+
+  defp assign_request_headers(conn, _opts) do
+    timestamp =
+      conn
+      |> get_req_header("x-slack-request-timestamp")
+      |> List.first()
+
+    signature =
+      conn
+      |> get_req_header("x-slack-signature")
+      |> List.first()
+
+    if is_nil(timestamp) or is_nil(signature) do
+      Logger.warning("Invalid request signature: missing slack headers")
+      invalid_request_signature(conn)
+    else
+      conn
+      |> assign(:timestamp, timestamp)
+      |> assign(:signature, signature)
+    end
+  end
+
+  defp verify_request_timestamp(conn, _opts) do
+    now = :os.system_time(:seconds)
+    timestamp = String.to_integer(conn.assigns.timestamp)
+
+    # Protect against replay attacks by ensuring the server time
+    # is within a 5 minute window of when Slack sent the request
+    if abs(now - timestamp) < @five_minutes_in_seconds do
+      conn
+    else
+      Logger.warning("Invalid request signature: timestamp not within acceptable window")
+      invalid_request_signature(conn)
+    end
+  end
+
+  defp verify_request_signature(conn, _opts) do
+    %{raw_body: raw_body, timestamp: timestamp, signature: signature} = conn.assigns
+
+    raw_body = IO.iodata_to_binary(raw_body)
+
+    if Slack.valid_request_signature?(signature, raw_body, timestamp) do
+      conn
+    else
+      Logger.warning("Invalid request signature: signature invalid")
+      invalid_request_signature(conn)
+    end
+  end
+
+  defp invalid_request_signature(conn) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: "Invalid request signature"})
+    |> halt()
+  end
+end
+```
+
+With that, you're able to setup a secure server that listens and processes events from Slack's Events API.
+
+If you copy an event sent by Slack (timestamp, signature, and raw body), you can ingest it locally with the following cURL command assuming you have the production signing secret configured and the event is within 5 minutes:
+
+```shell
+curl -X POST http://localhost:4000/api/slack \
+-H 'content-type: application/json' \
+-H 'x-slack-request-timestamp: 1714166025' \
+-H 'x-slack-signature: v0=06dced75b4f92527a506f38f515bd43f063e718b694e69a8ff77095c05f65afe' \
+-d "{\"token\":\"npOSq2lAdKsn3yzWyZRqmoum\",\"team_id\":\"T05415Z04CT\",\"context_team_id\":\"T05415Z04CT\",\"context_enterprise_id\":null,\"api_app_id\":\"A09TB7JESR2\",\"event\":{\"type\":\"message\",\"subtype\":\"message_deleted\",\"previous_message\":{\"user\":\"U05AN2SBYRP\",\"type\":\"message\",\"ts\":\"1714166020.779239\",\"client_msg_id\":\"cb8fa544-3a59-44c1-aa75-41aae774aaa8\",\"text\":\"Create a new message\",\"team\":\"T05415Z04CT\",\"blocks\":[{\"type\":\"rich_text\",\"block_id\":\"XJ69k\",\"elements\":[{\"type\":\"rich_text_section\",\"elements\":[{\"type\":\"text\",\"text\":\"Create a new message\"}]}]}]},\"channel\":\"C05CRST3H52\",\"hidden\":true,\"deleted_ts\":\"1714166020.779239\",\"event_ts\":\"1714166024.000400\",\"ts\":\"1714166024.000400\",\"channel_type\":\"channel\"},\"type\":\"event_callback\",\"event_id\":\"Ev070QUL2VB8\",\"event_time\":1714166024,\"authorizations\":[{\"enterprise_id\":null,\"team_id\":\"T05415Z04CT\",\"user_id\":\"U06U8QRTZCY\",\"is_bot\":true,\"is_enterprise_install\":false}],\"is_ext_shared_channel\":false,\"event_context\":\"4-eyJldCI6Im1lc3NhZ2UiLCJ0aWQiOiJUMDU4ODdaMDRDVCIsImFpZCI6IkEwNlRON0pEU1IyIiwiY2lkIjoiQzA1Q1ZRVTNINTIifQ\"}"
+```
+
+Happy Slacking!
