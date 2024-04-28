@@ -12,17 +12,14 @@ Remember the [chat bot hype circa 2016](https://www.wired.com/story/microsoft-bu
 Well, seeing as we have the ability to implement chat with far greater capabilities at our disposal, I couldn't help but create my own Slack bot powered by LLMs.
 At the moment, it doesn't do a whole lot, but it is available to shoot the shit in our Slack rooms, summarize discussions, assign tasks, etc.
 
-But, this post isn't about the chat bot. Perhaps a low bar, I'm easily nerd sniped by the types of things involved with setting up the chat bot, e.g., integrating with Slack,
+Perhaps a low bar, I'm easily nerd sniped by the types of things involved with setting up the chat bot, e.g., integrating with Slack,
 handling their overwhelming-amount-of events, background processing, and [verifiying the authenticity of requests](https://api.slack.com/authentication/verifying-requests-from-slack)&mdash;the latter of which is especially fun as it involves cryptography.
-
-This post is about verifying the authenticity of requests from [Slack's Events API](https://api.slack.com/apis/connections/events-api).
+So, this post is about verifying the authenticity of requests from [Slack's Events API](https://api.slack.com/apis/connections/events-api).
 
 ## Background
 
-If you're following along, I'm assuming you have a Phoenix application, a [Slack app](https://api.slack.com/start/apps), and your Slack app is configured to receive events from [Slack's Events API](https://api.slack.com/apis/connections/events-api).
-For that, you need the correct OAuth scopes, a live application hosted somewhere Slack can send events to, and your application installed in a Slack workspace.
-
-I deployed on [Fly.io](https://fly.io) since it takes one minute to do so and they give me a public url.
+To follow along, you'd need a Phoenix application and a [Slack app](https://api.slack.com/start/apps) that is configured to receive events from [Slack's Events API](https://api.slack.com/apis/connections/events-api).
+The Phoenix app will need to be hosted somewhere Slack can send those events to. I used [Fly.io](https://fly.io).
 
 ### Initial route and controller
 
@@ -223,7 +220,7 @@ end
 
 ### Verify request timestamp
 
-This plug will ensure that the timestamp from the request is within 5 minutes of the server's current time. This is the same range used in the Slack's documentation.
+This plug will ensure that the timestamp from the request is within 5 minutes of the server's current time. This is the same range used in Slack's documentation.
 
 ```elixir
 @five_minutes_in_seconds :timer.minutes(5) / 1000
@@ -247,7 +244,7 @@ end
 
 If the first two plugs succeeded, we'll verify the request signature using the `valid_request_signature?/3` function we defined above.
 
-Note that the `raw_body` is stored as [`iodata`](https://hexdocs.pm/elixir/IO.html#module-io-data) (`iolist` specifically), so we need to convert it to a binary first using `IO.iodata_to_binary/1`.
+Note that the `raw_body` is stored as [`iodata`](https://hexdocs.pm/elixir/IO.html#module-io-data), so we need to convert it to a binary first using `IO.iodata_to_binary/1`.
 
 ```elixir
 defp verify_request_signature(conn, _opts) do
@@ -372,7 +369,7 @@ end
 
 With that, you're able to setup a secure server that listens and processes events from Slack's Events API.
 
-If you copy an event sent by Slack (timestamp, signature, and raw body), you can ingest it locally with the following cURL command assuming you have the production signing secret configured and the event is within 5 minutes:
+If you copy an event sent by Slack (timestamp, signature, and raw body), you can ingest it locally with the following `curl` command assuming you have the production signing secret configured and the event is within 5 minutes:
 
 ```shell
 curl -X POST http://localhost:4000/api/slack \
