@@ -1,0 +1,123 @@
+---
+title: "No Escape Hatch: The Engineering Behind Mocha"
+description: "An inside look at the engineering behind Mocha and and the difficulties of building for non-technical users."
+published: 2026-01-08T12:00:00.000Z
+og_image_path: "/images/no-escape-hatch-engineering-behding-mocha.png"
+---
+
+*This post was originally published on the [Mocha blog](https://getmocha.com/blog/no-escape-hatch-engineering-behind-mocha).*
+
+Mocha’s promise is simple: describe what you want and our AI builds it. When ready, one click of a button and your app is live on the internet serving users. No code, no exposure to infrastructure, one account with a simple pricing model. For the first time, creating arbitrarily-complex software is genuinely accessible to people with no technical knowledge.
+
+That promise is easy to state and extraordinarily hard to deliver. This is *especially* true when serving a non-technical audience. App builders or other AI coding tools that assume a certain level of technical ability can lean on the user when things go sideways. When your audience is assumed non-technical, you don’t get that luxury. Either everything works or the product is broken. The bar is really, really high.
+
+In reality, building a product like this means you end up building half a dozen other products just to make the core experience work. Non-technical users need an all-in-one experience. We can’t ask them to sign up for a separate hosting provider, auth service, analytics platform, etc. and subsequently stitch all the pieces together. That’s friction, decision fatigue, and a maintenance burden we’re supposed to be eliminating. So we build them all, designed from the ground up to fit perfectly within the context of Mocha. Each one a product that could be its own company.
+
+This is an unreasonable amount of engineering for such a small team. But our team is strong and we’re not compromising on our vision. We’re going to deliver on that promise or die trying.
+
+## The pillars of Mocha
+
+These are the major systems we build and operate:
+
+* **An AI coding agent** — creates and maintains full-stack applications through conversation
+* **A hosting platform** — one-click deploys to production with custom domain support
+* **Built-in services for every app** — authentication, analytics, notifications, payments, and more
+* **Cloud development environments** — each app has a stateful, isolated sandbox for development and previewing
+* **Observability infrastructure** — logs, metrics, and tracing across user environments, plus our own systems
+* **The product itself** — the UI and orchestration layer that ties all this together into one coherent user experience
+
+### AI coding agent
+
+The coding agent is the heartbeat of Mocha. This comes with a large set of tremendously hard and interesting problems. Context engineering, compaction, tool design, subagents, memory, etc. We’re going to write more about these in subsequent posts. Here I want to highlight what differentiates Mocha’s agent from the others:
+
+**No escape hatch**
+
+Most coding agents assume the user is at least somewhat technical. When building for that audience, you can rely on the user to intervene when the agent heads down the wrong path. The goal is to get it right as much as possible, but it’s still expected that users step in to course correct when needed. Mocha cannot expect this of their users. If the generated code fails, the agent needs to understand why, fix it, and keep moving without intervention.
+
+Notably, this isn’t only about fixing broken code (which is relatively easy). It’s often about behavior. Users frequently give vague or ambiguous asks. This raises the bar significantly. Often, people refer to Claude Code as a member of the engineering team. Mocha’s agent needs to function more like an entire consultancy—a shop full of product people, project managers, and engineers. It needs to guide the user to a successful business outcome.
+
+**A constrained stack**
+
+We’re not generating code for arbitrary environments. Every Mocha app runs on the same, deeply-integrated stack. This is a deliberate constraint that allows the agent to go deep instead of wide.
+
+This is an advantage we have. We can focus all efforts on making the agent as effective as possible within a single, known stack which includes the production infrastructure and provided services.
+
+### A hosting platform
+
+When a user is ready to go live, they pick a domain (either a subdomain of mocha.app or a custom domain they connect) and click publish.
+
+Behind the scenes we deploy all apps to Cloudflare using [Workers for Platforms](https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/). There are two main pieces to the publishing pipeline:
+
+1. **Code and infrastructure** — We upload the compiled code and static assets, then migrate the D1 database, handling any errors along the way. In some cases, we need to provision resources, such as creating D1 databases or R2 buckets and binding them to the app. We had to build our own SDK for this as wrangler is written in TypeScript and we’re using Elixir.
+2. **Routing configuration** — We update our router so that it knows which URLs should resolve to the app, at which point the app is considered live.
+
+A core function of our dispatch worker is to route each incoming request to the correct app, but that’s not all. It also extends every app with platform-level functionality like analytics, rate limiting, logging, and more. This lets us maintain platform integrity while providing users with built-in behavior.
+
+Of course, we lean heavily on Cloudflare here, but that doesn’t mean we’re not operating our own hosting platform. Provisioning databases and storage per app, tracking usage, enforcing limits, managing data imports and exports, tracking migrations for evolving schemas, decommissioning resources when apps are unpublished, and generally, stepping in when things go wrong. These are still on us.
+
+### Built-in services for every app
+
+Common problems should have common solutions. Authentication, analytics, notifications, and payments are needs that appear in most apps. If we let the AI generate bespoke solutions every time, we get inconsistent results and an increase in failure scenarios. Instead, we provide standardized, first-party services with no integration cost.
+
+This is a meaningful advantage. Less generated code means fewer opportunities for error. Consistent interfaces mean the agent can reliably integrate these services. Since we control the implementation, we can optimize for the specific constraints of our platform in ways a generic third-party service cannot.
+
+Each service worth building is a product category with entire companies dedicated to it. Since these are deep domains, we need to be careful to strike the right balance of investment vs engineering hours spent. Today, Mocha provides the following (with notifications and payments coming):
+
+**Users Service**
+
+Our first built-in service handles authentication, authorization, and user profiles. It’s a product like Clerk or Supabase Auth, but designed for the nuances of our platform. Every app gets Google OAuth out of the box, no credentials required (though users can bring their own if they want). Because we own this service, we can build experiences that wouldn’t be possible otherwise, e.g., seamless OAuth redirects that work correctly even in the sandboxed preview environment.
+
+**Analytics Service**
+
+Every published app gets built-in, privacy-friendly analytics with no setup. A service like Plausible, but injected at the platform layer. Analytics data flows into the same data warehouse as the rest of our observability stack, enabling the agent to have a holistic view of the user’s production application. The agent will be able to reference real traffic patterns and thus answer questions like “is my app seeing an increase in unique visitors week over week?”
+
+### Cloud development environments
+
+Every Mocha app gets its own isolated, stateful sandbox where code executes, dependencies install, and the preview server runs. Sandboxes are hosted on [Fly.io](https://fly.io). Each one is its own machine with a persistent filesystem and multiple processes, including a Vite dev server running the user’s app. Users see their app update in real-time while being built.
+
+The sandbox and our agent are two separate systems working across machines. In practice, this means that each has its own view of the app’s source code and surrounding state. Keeping these two systems in sync at all times has been tricky, mostly due to race conditions across distributed systems.
+
+A few more challenges:
+
+* **Runtime environments** — Development runs on Vite and Node. Production runs on Cloudflare Workers, a more constrained runtime. The [Workers Vite plugin](https://developers.cloudflare.com/workers/vite-plugin/) bridges most of this gap, but edge cases remain (particularly around local SQLite vs. production D1).
+* **Resource lifecycle** — Ensuring machines are correctly suspended and resources are reclaimed when no longer in use is a must for keeping costs under control.
+* **Stateful scaling** — Stateless machines are relatively easy to scale. But scaling machines with persistent volumes across multiple regions involves many more moving parts.
+
+### Observability infrastructure
+
+We ingest logs and metrics from three sources: user dev environments (Fly sandboxes), user prod environments (Cloudflare workers), and our own internal systems. Everything flows into a single Clickhouse instance.
+
+For us, observability is much more than something humans look at during incidents. It’s core product input. We’re essentially automating human developers and human developers rely heavily on logs, errors, and runtime behavior to debug and iterate. The agent needs the same context.
+
+We consume this data in two main ways:
+
+1. **Agent context** — The agent can query runtime behavior in both dev and prod environments. This is essential for debugging and fixing issues without user intervention.
+2. **Internal tooling** — Consolidating all logs and metrics under one roof makes it easy for us to diagnose and fix our own errors. Our admin tooling allows us to quickly see everything surrounding a given app, which is critical for customer support.
+
+### The product itself
+
+The hardest problem is educational. Non-technical users need guidance. What should an app like this include? What matters now vs. later? What seems important but isn’t? Experienced builders know how to answer these questions. Our users may be encountering them for the first time.
+
+We don’t want Mocha to feel technical the way Figma or an IDE does. Those tools assume fluency. We want Mocha to be accessible to people who may be new to app development. The product has to teach without feeling like homework, surfacing the right information at the right time. A delicate balance between a powerful tool and a beginner-friendly experience.
+
+One concrete example of confusion that stems from product is our preview vs published environments (dev vs prod). Users often setup their preview environment with data they expect in published environments. After publishing, the live environment doesn’t contain the expected data. How do we educate them that the preview environment has a “test” database? How can we remove this friction while avoiding the inevitable problems that would arise should we use the same database in both environments? This problem is a particularly detrimental one for user experience.
+
+Easy to use yet powerful product is one of the hardest problems in the space but arguably the biggest opportunity. The models are very good and they’re improving fast. The infrastructure is stable. Product is the last piece, i.e., can we successfully guide the average person from a vague idea to an app that’s both valuable today and sustainable over time?
+
+## The small stuff (that’s not small)
+
+There are many interesting and challenging projects not mentioned above. We squeeze these in as we go. Here are a few examples:
+
+* **Moderation agent** — With scale comes bad actors. We built an agent dedicated to preventing abuse. This agent scans conversation history, code and other assets, taking down apps and alerting the team when our [platform rules](https://getmocha.com/platform-rules) are blatantly violated.
+* **Contextual editing** — Most AI interfaces are “global,” meaning they have one chat box for everything. In many ways, this is the best UX, assuming it works as the user intends. However, contextually editing the app is more effective in some situations (think right click, component-local edits).
+* **Payment infrastructure** — We have monthly and yearly subscriptions, each with add-ons, discounts, campaigns, etc. This requires non-trivial webhooks and edge case handling on top of a credit ledger that tracks each user’s AI consumption.
+* **Experimental architectures** — We’re always exploring new models, architectures, and techniques to continually improve our agent and surrounding AI.
+* **Rich admin tooling** — Being a productive team means having a rich and accessible view into our systems, users, and apps. This helps with customer support, agent evals, and operations.
+
+## What lies ahead
+
+While this is a massive surface area for such a small team, the work is genuinely exciting. This has been the most fun and challenging work of my career. There’s no shortage of ideas, new  things to learn, and impact to be had.
+
+The roadmap only grows from here. One thing I’m personally excited about long term is designing new frameworks for an AI-first world. For example, what would a web framework designed exclusively for AI look like? How might it be different from what exists (which were designed for humans)? Not only the code, but infrastructure as well. One holistic package, from spinning up a sandbox, to the first line of code, to operating a large, stateful application in production. Surely, new tools will exist to better suit products like Mocha in an AI-native world.
+
+*If you’re a talented engineer excited by these challenges, we’d love to hear from you. Send us an email!*
