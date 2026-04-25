@@ -1,0 +1,145 @@
+---
+title: "Why We Bet On Cloudflare For 100,000 AI-built Apps"
+description: "How Mocha uses Cloudflare Workers for Platforms to deploy 100K AI-generated apps."
+published: 2026-02-25T12:00:00.000Z
+og_image_path: "/images/why-we-bet-on-cloudflare-100k-ai-apps.png"
+---
+
+*This post was originally published on the [Mocha blog](https://getmocha.com/blog/no-escape-hatch-engineering-behind-mocha).*
+
+Since Mocha launched in July 2025, we've deployed and operated ~100,000 AI-generated applications on Cloudflare's Workers for Platforms. Designing for and running AI-built software in production at this scale has given us a unique view into how clouds will evolve in the era of AI.
+
+As engineers become less involved with the specifics of code, a greater emphasis is placed on a solution that “just works.” What’s more, if you’re designing a coding agent (or expecting one to build on your behalf), you want to reduce the number of decisions the AI must make while increasing the reliability of its output. Cloud providers that thrive moving forward will shift from offering raw infrastructure to higher-level, opinionated abstractions for precisely this reason.
+
+More specifically, the AI-era cloud will be defined by two ideas: *capability injection* and *safe composition*. Given Mocha's experience building on top of Workers for Platforms, Cloudflare has the best implementation of these concepts I've seen so far and why we're going all in on their platform.
+
+## The cloud is too low-level
+
+Traditional clouds like AWS, GCP, and Azure were designed around the assumption that skilled engineering teams will invest in and maintain hundreds of careful choices about their infrastructure over the course of years. We’re talking about VMs, databases, networking, security boundaries, deployment pipelines, etc. In practice, that often requires team(s) of people to build and maintain. Companies needed a certain size and scale to justify the effort.
+
+In 2026 and beyond, things are changing fast. In particular:
+
+1. **The number of applications explodes** — While the volume increases, most will be smaller in scope with shorter lifespans. Teams, if there even is one, will have fewer people. In this environment, it doesn’t make sense to spend time building or maintaining low-level infrastructure.
+2. **The builder becomes non-deterministic** — If there’s an agent responsible for building the application, the less it needs to concern itself with the better. Every extra decision point is another chance to produce something subtly wrong.
+
+IAM policies, VPC configurations, CPU/memory, volumes, database connection strings, etc. are excellent footguns for agents (and inexperienced humans). This is particularly true when you’re designing an agent like Mocha’s which needs to reliably build on behalf of non-technical users.
+
+## Rising levels of abstraction
+
+The level of abstraction has been rising for years (see: Heroku, Fly, Render, etc), but the difference now is the rate at which it’s accelerating and the reasons why. I used to think of good abstractions as necessary for productivity (and sanity). In the context of coding agents, they’re more like insurance against bad decisions. This makes them the primary lever for achieving reliable outcomes.
+
+You can categorize a cloud stack into four categories:
+
+1. **Infrastructure Primitives** — compute, networks, disks.
+2. **Managed building blocks** — databases, workers, queues, object storage, etc.
+3. **Capabilities** — app-level concerns delivered as products, e.g., auth, rate limiting, LLM integrations, analytics, etc
+4. **Composition** — Bundling your code with capabilities, delivered on top of the fundamental infrastructure
+
+Traditional clouds have strong offerings for the first two. The latter is where it gets interesting, expedited by the shift to AI-written software.
+
+**Capability injection** is the idea that infrastructure and services should be attachable to an application declaratively, without needing to implement them from scratch. A database, an email service, an auth system — these are capabilities that get *injected into* the application's environment without requiring glue code. The less the agent needs stitch together, the more reliable and consistent the result.
+
+**Safe composition** is complementary: humans control the important, sensitive, or platform-level bits, and the AI runs with the rest. The two layers compose safely and the platform can wrap, extend, or constrain AI-generated code without the AI needing to know or care. Sensitive values like secrets are not exposed. Platform behavior stays consistent.
+
+Together, these define the contract between a platform and the AI building on top of it. Clouds that nail these concepts will dominate.
+
+## Capability injection
+
+Mocha's customers are non-technical. They describe what they want in natural language and our agent builds and publishes full-stack web applications on their behalf. Our engineering team designs the environment the agent operates within. Consistency and reliability are our primary concerns.
+
+For instance, each Mocha app comes with a database and object storage. Any scaffolding and configuration here needs to be rock solid as this is the foundation for all Mocha apps. To that end, this should not be the responsibility of the agent. We want these to be injected into the environment.
+
+Cloudflare’s [bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings) are the elegant solution here. We can specify bindings for our database and object storage in `wrangler.jsonc`, a file maintained by our code (our agent is *not* allowed to edit this file).
+
+```json
+{
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "<app_id>",
+      "database_id": "<app_id>"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "<app_id>"
+    }
+  ]
+}
+```
+
+This is all it takes to attach a database and object storage to a Mocha app. From there, Cloudflare will expose an object using the `binding` specified above (e.g. `DB`) that is used to access the underlying resource (provisioned by Cloudflare when first deployed). The agent's code to query the database looks like:
+
+```tsx
+await env.DB.prepare("SELECT * FROM table").all();
+```
+
+No glue code. No connection strings or environment variables. No database settings or extra configuration. The simplicity means this is *hard to get wrong*. That's precisely what we're looking for when designing the environment for our coding agent.
+
+### Injecting your own capabilities
+
+Out-of-the-box infrastructure bindings are already a superpower. But the real unlock is being able to inject your own.
+
+At Mocha, we [build a number of services](https://blog.getmocha.com/no-escape-hatch-engineering-behind-mocha/) on behalf of our users such as auth, email, analytics, and more. We want these to be as simple as the built-in infrastructure for the AI to use. They too should be *hard to get wrong*.
+
+Cloudflare allows us to define our own services and attach them as a [service binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/). For example, our emails service (built and maintained by us) is attached to an app by configuring:
+
+```json
+{
+  "services": [
+    {
+      "binding": "EMAILS",
+      "service": "emails-service",
+      "entrypoint": "EmailService",
+      "props": {
+        "appId": "<app_id>"
+      }
+    }
+  ]
+}
+```
+
+Cloudflare stitches the pieces together and exposes an `EMAILS` binding to the code. Our agent only needs to know the following interface:
+
+```tsx
+await env.EMAILS.send({
+  to: "...",
+  from: "...",
+  html_body: “...”
+})
+```
+
+No libraries to install. No environment variables to configure. We surface only what's absolutely necessary and nothing more.
+
+This extensibility is critical. Platforms building on the cloud need to inject their own capabilities with the same simplicity. Cloudflare's bindings model handles both equally well.
+
+### Why this matters more than it seems
+
+One detail worth calling out: platform secrets are not exposed to user code. The emails service above is configured with API secrets, but those are impossible to access from the AI-written application. If we instead relied on e.g. npm packages to attach capabilities, secrets would be accessible to user code. Bindings keep Mocha apps secure without additional effort.
+
+This is a microcosm of the broader point. When capabilities are injected rather than implemented, you get simplicity and security as a byproduct. The agent doesn't need to handle secrets because it never sees them. It doesn't need to configure infrastructure because there's nothing to configure.
+
+## Safe composition
+
+Capability injection covers how you give an application access to services and infrastructure. But what about behavior that shouldn't live in the application at all?
+
+Consider analytics. Rather than teaching the agent how to implement analytics for each app, we want to intercept requests at the platform layer and handle it ourselves. The agent shouldn't need to think about it. This is where safe composition comes in. We can easily separate platform code from user code while allowing a single request to flow through both.
+
+This is what Cloudflare's [dispatch worker](https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/configuration/dynamic-dispatch) enables. Every request to a Mocha app passes through a worker we control before reaching the user's application. That worker has its own bindings (infrastructure and services), none of which is visible to or writable by the agent. It allows us to remove entire categories of behavior from user applications.
+
+We use the dispatch worker to implement rate limiting, request throttling, analytics, observability, and more. These are concerns the AI never generates code for and can never interfere with. The platform layer and the user layer compose cleanly: a single request flows through both, but each layer has its own capabilities with a clear separation of concerns.
+
+The dispatch *pattern* itself could be implemented by your team on any cloud with e.g. a micro service. But there’s tremendous value in making it a first-class primitive offered by the cloud provider and removing the burden from your team.
+
+## The vertical trap
+
+For the most part, I’m not bullish on companies building single infrastructure verticals (e.g., just sandbox infrastructure or just edge compute).
+
+Cloud providers can launch any of these products individually. The composition of all of them under one roof is where the real value is. Platforms need databases, object storage, compute, and extensibility in the same place, ideally in the same datacenter. When your sandboxes are hosted by one company, your databases by another, and your edge compute by a third, you pay a performance tax on every request that crosses a provider boundary while inheriting additional complexity these solutions were supposed to eliminate.
+
+## Conclusion
+
+As the volume of AI-built software grows and the people building it become less technical, the demand for higher-level clouds will only accelerate. The infrastructure questions that used to be answered by experienced engineers will instead be answered by the platform. The clouds that embrace opinionated, composable, high-level primitives rather than raw infrastructure will be the ones that thrive.
+
+We think Cloudflare is leading here. Their model is designed for composition and it offers critical infrastructure with simple configuration. Bindings make capability injection trivial. Workers for Platforms makes safe composition a first-class primitive. Together, they let us focus on building a reliable and magical platform for users while the cloud handles the rest.
