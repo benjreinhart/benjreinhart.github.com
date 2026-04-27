@@ -1,0 +1,242 @@
+---
+title: Req Is All You Need
+description: Req and ServerSentEvents cover all your Elixir AI needs.
+published: 2026-04-27T12:00:00.000Z
+og_image_path: "/og/req-is-all-you-need.png"
+---
+
+While there's an abundance of libraries that wrap AI providers, the utility of such libraries is limited. Many attempt to consolidate all the differences between the APIs, unifying them behind a shared interface. The shelf life of those abstractions is short. The libraries themselves get complex trying to maintain the facade while the underlying providers continue to expand and diverge.
+
+For the most part, these libraries are unnecessary, maybe even harmful. I'm saying this as someone who previously [maintained one](https://github.com/axflow/axflow/tree/main/packages/models). Here's why:
+
+1. Most projects don't need to use N providers interchangably.
+2. When learning how to use e.g. Anthropic's API, I want to look at their API documentation and have that map 1:1 to my code. If I have to translate that to someone else's interface, that adds indirection and requires learning two APIs. Building and debugging becomes more tedious.
+3. These libraries add their own concepts and interfaces, increasing the compleixty of your environment.
+4. You may have less flexibility with a given provider. You're at the mercy of the library to ship any updates required to use new provider features.
+
+The good news is wrapping these providers with your own code is trivial. This was true pre-AI, but this is especially true in the era of coding agents.
+
+The examples here are using Anthropic's API, but the same principles apply to any provider (and really any API).
+
+## An HTTP client is all you need
+
+The providers are nothing more than HTTP APIs. An HTTP client is all you need.
+
+Req is the HTTP client library of choice in Elixir these days, so we use that. Here we wrap the [messages endpoint](https://platform.claude.com/docs/en/api/messages/create) with some basic code:
+
+```elixir
+defmodule Anthropic do
+  @url "https://api.anthropic.com/v1/messages"
+
+  def messages(request) do
+    opts = [
+      json: request,
+      headers: headers(),
+      # Req default timeout is 15s which is
+      # too little for many AI invocations.
+      receive_timeout: :timer.minutes(1)
+    ]
+
+    case Req.post(@url, opts) do
+      {:ok, %{status: 200, body: body}} -> {:ok, body}
+      {:ok, %{body: body}} -> {:error, body}
+      {:error, _error} = error -> error
+    end
+  end
+
+  defp headers do
+    %{"x-api-key" => api_key(), "anthropic-version" => "2023-06-01"}
+  end
+
+  defp api_key do
+    Application.fetch_env!(:my_app, :anthropic_api_key)
+  end
+end
+```
+
+Super simple stuff. Using our wrapper we get a 1:1 mapping with Anthropic's API.
+
+
+```elixir
+{:ok, %{"content" => [%{"text" => text}]}} =
+  Anthropic.messages(%{
+    model: "claude-haiku-4-5",
+    max_tokens: 8192,
+    system: """
+    You're an API wrapper generator.
+    """,
+    messages: [
+      %{
+        role: :user,
+        content: "Generate an Elixir module that wraps the Anthropic API's messages endpoint."
+      }
+    ]
+  })
+
+IO.puts(text)
+```
+
+And with that, we're done. Or, we would be if it weren't for streaming.
+
+## SSE parsing is all you need
+
+Streaming partial responses from the providers does introduce a bit of extra complexity. It's the reason many do end up using 3rd party packages. Indeed, a big selling point of libraries like the [AI SDK](https://ai-sdk.dev) is that they make streaming easy.
+
+From a client library perspective, the only complexity streaming introduces is [parsing Server Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html#parsing-an-event-stream). If we can delegate this part to a robust library, then we're back to maintaining a simple client wrapper.
+
+I built [server_sent_events](https://github.com/benjreinhart/server_sent_events) to solve exactly this problem. It's a small library that correctly (according to the spec) parses Server Sent Events in as performant a way as possible.
+
+To support streaming, we add `stream_messages/1` to our module above.
+
+```elixir
+def stream_messages(request) do
+  opts = [
+    json: Map.put(request, :stream, true),
+    into: :self,
+    headers: headers(),
+    # Req default timeout is 15s which is
+    # too little for many AI invocations.
+    receive_timeout: :timer.minutes(1)
+  ]
+
+  case Req.post(@url, opts) do
+    {:ok, %{status: 200, body: body}} ->
+      stream =
+        body
+        |> ServerSentEvents.decode_stream()
+        |> Stream.map(fn event -> JSON.decode!(event.data) end)
+
+      {:ok, stream}
+
+    {:ok, %{body: body}} ->
+      {:error, body |> Enum.to_list() |> hd() |> JSON.decode!()}
+
+    {:error, _error} = error ->
+      error
+  end
+end
+```
+
+`stream_messages/1` is very similar to `messages/1`. The differences are:
+
+1. We set `stream: true` in the request body.
+2. We set `into: :self` in the Req options to receive the response body as a stream.
+3. We decode the stream using `ServerSentEvents.decode_stream/1` and map over the result, returning the JSON-decoded event data.
+
+Callers will write something like:
+
+```elixir
+{:ok, stream} =
+  Anthropic.stream_messages(%{
+    # same request body
+  })
+
+Enum.each(stream, &IO.inspect/1)
+```
+
+With little extra complexity, we've now solved streaming.
+
+## What about cancellation?
+
+Ok I lied, there's one last piece of complexity: cancelling a streaming request mid-flight.
+
+When using `into: :self`, Req returns `Req.Response.Async`. [`cancel_async_response/1`](https://hexdocs.pm/req/Req.html#cancel_async_response/1) can be used to cancel it mid-flight.
+
+At its simplest, we can return a function alongside the stream that cancels the underlying HTTP request when called. Inside `stream_messages/1`, we update the success case:
+
+```elixir
+case Req.post(@url, opts) do
+  {:ok, %{status: 200, body: body} = response} ->
+    stream =
+      body
+      |> ServerSentEvents.decode_stream()
+      |> Stream.map(fn event -> JSON.decode!(event.data) end)
+
+    {:ok, stream, fn -> Req.cancel_async_response(response) end}
+
+  # ...
+end
+```
+
+Usage would now change to:
+
+```elixir
+{:ok, stream, cancel} = Anthropic.stream_messages(%{ ... })
+
+for message <- stream do
+  if some_condition?(message) do
+    cancel.()
+  else
+    IO.inspect(message)
+  end
+end
+```
+
+However, that can be a bit tricky to use properly. A better approach is to encapsulate the cancellation logic within the module itself. We can instead send a `cancel` message to the process streaming the response. We need to listen for this message while iterating over the stream in the success case, which we do using `Stream.transform/3`:
+
+```elixir
+case Req.post(@url, opts) do
+  {:ok, %{status: 200, body: body} = response} ->
+    stream =
+      body
+      |> ServerSentEvents.decode_stream()
+      |> Stream.map(fn event -> JSON.decode!(event.data) end)
+      |> Stream.transform(response, fn decoded, response ->
+          receive do
+            :cancel ->
+              Req.cancel_async_response(response)
+              {:halt, response}
+          after
+            0 -> {[decoded], response}
+          end
+        end)
+
+    {:ok, stream}
+
+  # ...
+end
+```
+
+On each stream entry, check if there's a `:cancel` message in the process mailbox. If there is, cancel the HTTP request and halt the stream. If not, yield the decoded event.
+
+Usage will now look a little different:
+
+```elixir
+{:ok, pid} = 
+  Task.start(fn ->
+    {:ok, stream} = Anthropic.stream_messages(%{ ... })
+    Enum.each(stream, &IO.inspect/1)
+  end)
+
+Process.sleep(3000)
+# E.g., user pressing a stop button triggers:
+send(pid, :cancel)
+```
+
+This might seem a bit awkward in isolation, but in real world settings (e.g. Phoenix apps), your long lived code will likely already be its own process (you'll want it to be if not).
+
+And with that, we have a simple client wrapper that supports both standard and streaming requests, with cancellation support for the latter.
+
+## Switching providers
+
+The sales pitch for a unified interface over N providers is that it allows you to use multiple providers interchangeably. I would still consider creating a module like the one above for each provider. This keeps each provider wrapper simple, maintainable, and easy to use on its own. Then, create a higher level module that defines a shared interface, translates arguments, and delegates. This keeps all the complexity of unification in one place. From here, you have the flexibility to evolve this however you want, which may be valuable while things are still rapidly evolving.
+
+## What about agents?
+
+Yes agents are more complex. Looping workflows, context management, caching, tool use, etc. But they are still built on top of exactly the foundation laid out above.
+
+I would argue that building agents is:
+
+1. Not a solved problem with generic, mature solutions (things are still evolving rapidly)
+2. Highly context-dependent, requiring custom logic for each specific use case
+
+Therefore, I think the complexity of building agents is your problem to own for now.
+
+(plus, isn't it fun?)
+
+
+
+
+
+
+
