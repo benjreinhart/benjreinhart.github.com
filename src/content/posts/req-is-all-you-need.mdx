@@ -219,7 +219,7 @@ And with that, we have a simple client wrapper that supports both standard and s
 
 ## Switching providers
 
-The sales pitch for a unified interface over N providers is that it allows you to use multiple providers interchangeably. I would still consider creating a module like the one above for each provider. This keeps each provider wrapper simple, maintainable, and easy to use on its own. Then, create a higher level module that defines a shared interface, translates arguments, and delegates. This keeps all the complexity of unification in one place. From here, you have the flexibility to evolve this however you want, which may be valuable while things are still rapidly evolving.
+Switching between providers is the one place a library starts to make sense. Even so, you can keep the simple per-provider wrappers from above and write a thin module on top that defines a shared interface and delegates to them. The unification logic stays yours, in one place, and easy to evolve as the providers do.
 
 ## What about agents?
 
